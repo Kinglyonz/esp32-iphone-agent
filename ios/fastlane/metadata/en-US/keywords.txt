@@ -1,1 +1,1 @@
-ai,agent,automation,esp32,assistant,llm,vision,shortcuts,accessibility,open source
+ai,agent,automation,esp32,assistant,llm,vision,open source,hardware,robot
