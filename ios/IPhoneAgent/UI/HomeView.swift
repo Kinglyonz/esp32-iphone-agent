@@ -84,7 +84,7 @@ struct HomeView: View {
             }
             .overlay {
                 if app.departing {
-                    DepartureOverlay(message: app.homeHint ?? String(localized: "Going to the Home Screen…")) {
+                    DepartureOverlay(problem: app.homeHint) {
                         Task { await app.stopAgent() }
                     }
                 }

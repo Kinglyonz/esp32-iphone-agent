@@ -82,8 +82,8 @@ extension AppModel {
             if waited {
                 recover(nil)
                 startupBoardIssue = false
-                homeHint = String(localized: "Going to the Home Screen…")
-                live.show(.leavingApp, mood: .thinking)
+                homeHint = nil
+                live.show(.leavingApp, mood: .acting)
             }
             return
         }

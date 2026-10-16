@@ -15,8 +15,8 @@ struct IslandStatus: Equatable {
     static let compactLimit = 16
 
     static var leavingApp: Self {
-        Self(short: String(localized: "Going home"), full: String(localized: "Going to the Home Screen…"),
-             look: .zero, minimal: String(localized: "Home"))
+        Self(short: String(localized: "See you later!"), full: String(localized: "See you later!"),
+             look: CGPoint(x: 0, y: -0.6), minimal: String(localized: "Start"))
     }
 
     static var waitingForBoard: Self {

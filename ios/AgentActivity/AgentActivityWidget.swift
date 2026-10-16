@@ -60,14 +60,13 @@ struct AgentLiveActivity: Widget {
                 if s.phase == .recording && !s.finished {
                     Counter(state: s).font(.caption).frame(maxWidth: 44)
                 } else {
-                    Says(state: s, full: false).font(.caption.bold()).frame(maxWidth: 92, alignment: .trailing)
+                    Says(state: s, full: false).font(.caption.bold()).frame(width: 92, alignment: .trailing)
                 }
             } minimal: {
                 if s.phase == .recording {
                     Image(systemName: "record.circle.fill").foregroundStyle(.red)
                 } else {
-                    // Screen Mirroring shares the island and leaves only this small presentation.
-                    // Prioritize the real phase; the character remains in compact/expanded layouts.
+                    // Screen Mirroring shares the island during a run and leaves only this bubble: the face.
                     AgentMinimalStatus(state: s)
                 }
             }
@@ -122,8 +121,7 @@ private struct Eyes: View {
     let state: AgentActivityAttributes.ContentState
     var body: some View {
         AgentFace(mood: state.mood, look: state.look, lookRange: 2.4, animated: false, showsTab: false)
-            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.65), value: state.look)
-            .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.7), value: state.mood)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: state)
     }
 }
 
@@ -138,7 +136,7 @@ private struct Says: View {
             .minimumScaleFactor(0.75)
             .foregroundStyle(color)
             .contentTransition(.opacity)
-            .animation(.easeOut(duration: 0.25), value: text)
+            .animation(.easeInOut(duration: 0.3), value: state)  // the same beat as the face
     }
 
     private var color: Color {

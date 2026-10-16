@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// The character takes off, but instructions and cancellation stay until the app is actually backgrounded.
+/// The character takes off before a run: "See you later!", then it shrinks up toward the island while the
+/// board sends the app home (a fade under Reduce Motion). Only a problem (board slow, swipe up yourself)
+/// brings back words and Cancel; the overlay stays until the app is really in the background.
 struct DepartureOverlay: View {
-    let message: String
+    let problem: String?
     let cancel: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var gone = false
@@ -13,25 +15,30 @@ struct DepartureOverlay: View {
             VStack(spacing: Space.l) {
                 AgentFace(mood: .acting)
                     .frame(width: 140, height: 157)
-                    .offset(y: gone && !reduceMotion ? -120 : 0)
+                    .scaleEffect(gone && !reduceMotion ? 0.15 : 1, anchor: .top)
+                    .offset(y: gone && !reduceMotion ? -360 : 0)
                     .opacity(gone ? 0 : 1)
                     .accessibilityHidden(true)
-                ProgressView().accessibilityHidden(true)
-                Text(verbatim: message)
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                Button("Cancel", role: .cancel, action: cancel)
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .frame(minHeight: 44)
+                Text("See you later!").font(.title2.bold()).opacity(gone ? 0 : 1)
+                if let problem {
+                    Text(verbatim: problem)
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                    Button("Cancel", role: .cancel, action: cancel)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(minHeight: 44)
+                }
             }
             .padding(Space.xl)
             .frame(maxWidth: .infinity)
+            .animation(.easeOut(duration: 0.25), value: problem)
         }
         .transition(.opacity)
         .onAppear {
-            withAnimation(.easeIn(duration: 0.4).delay(0.35)) { gone = true }
+            withAnimation(.easeIn(duration: 0.35).delay(0.25)) { gone = true }  // 0.6 s, the board goes home after it
         }
+        .accessibilityLabel(Text("Starting"))
     }
 }
 

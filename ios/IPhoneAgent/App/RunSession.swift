@@ -83,11 +83,11 @@ extension AppModel {
         let snapMode = FrameMode.current == .snap
         live.start(task: task, runID: runID, limit: agent.maxSteps)
         mark("Live Activity requested")
-        departing = true
-        homeHint = String(localized: "Going to the Home Screen…")
-        live.show(.leavingApp, mood: .thinking)
+        departing = true  // "See you later!": the board readies the screen during the take-off
+        homeHint = nil
+        live.show(.leavingApp, mood: .acting)
+        let takeOff = now()
         do {
-            try await Task.sleep(nanoseconds: 800_000_000)  // only the character fades; guidance remains
             if snapMode {
                 if feed.streamOn { try await startupBoardCommand { try await feed.stream(false) } }
                 mark("snap-per-step mode (stream off)")
@@ -95,6 +95,8 @@ extension AppModel {
                 try await startupBoardCommand { try await feed.stream(true) }  // reconnect before resuming startup
                 mark("stream on")
             }
+            let rest = 0.6 - (now() - takeOff)  // let the character finish leaving, then go home at once
+            if rest > 0 { try await Task.sleep(nanoseconds: UInt64(rest * 1e9)) }
             backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "agent") { [weak self] in
                 self?.say("iOS is ending background time; BLE status keeps the run going")
                 self?.endBackgroundTask()
