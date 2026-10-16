@@ -5608,22 +5608,22 @@
         }
       }
     },
-    "Helps improve setup and runs: which setup steps finish, run results, step counts and timings, the model provider, app and iOS version. Never your tasks, screenshots, model replies, keys or addresses." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用于改进设置和运行：完成了哪些设置步骤、运行结果、步数和耗时、模型服务商、App 和 iOS 版本。绝不包含你的任务、截图、模型回复、密钥或地址。"
-          }
-        }
-      }
-    },
     "Open source. No data leaves this iPhone except the requests to the model endpoint you set up, and anonymous usage stats if you turn them on." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "开源软件。除了发往你设置的模型接口的请求，以及你开启后的匿名使用统计，没有数据离开这台 iPhone。"
+          }
+        }
+      }
+    },
+    "Helps improve setup and runs: which setup steps finish, run results, step counts and timings, the model provider, app and iOS version, and crash reports. Never your tasks, screenshots, model replies, keys or addresses." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于改进设置和运行：完成了哪些设置步骤、运行结果、步数和耗时、模型服务商、App 和 iOS 版本，以及崩溃报告。绝不包含你的任务、截图、模型回复、密钥或地址。"
           }
         }
       }

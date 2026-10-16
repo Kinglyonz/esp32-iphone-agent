@@ -43,6 +43,10 @@ platform :ios do
                     export_method: "app-store", output_directory: "build/store", clean: true,
                     xcargs: "#{settings} #{auth}", export_xcargs: auth)
     check_no_preset(ipa: ipa)
+    # Keep each build's symbols: crash_report events carry raw addresses, symbolicated with these.
+    dsyms = File.expand_path("~/Library/Developer/ESP32Agent-dSYMs")
+    FileUtils.mkdir_p(dsyms)
+    FileUtils.cp(lane_context[SharedValues::DSYM_OUTPUT_PATH], "#{dsyms}/#{bundle_id}-#{build}.dSYM.zip")
     upload_to_testflight(ipa: ipa, skip_waiting_for_build_processing: true)
     UI.success("Uploaded #{bundle_id} build #{build}")
   end

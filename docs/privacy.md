@@ -12,7 +12,7 @@ stats if you turn them on.
   text to the model endpoint **you** set up (a cloud API or your own server). That provider's privacy policy
   applies to those requests. Nothing is sent anywhere else.
 - **On your iPhone only.** Runs (steps, model replies, screenshots, screen video), the debug log and crash
-  reports from iOS are stored in the app's own storage. You can delete runs in the app, or delete the app to
+  reports from iOS are stored in the app's own storage (crash reports are also sent if you turn on usage stats). You can delete runs in the app, or delete the app to
   remove everything.
 - **API key.** Your model API key is stored in the iOS Keychain on this device and is never written to logs
   or exports.
@@ -32,6 +32,8 @@ fixed list of events to PostHog (US), which the developer uses to see where setu
   duration, whether it came from a saved intent
 - the model provider (e.g. OpenRouter) and, for a known provider, the model ID; never the address or key
 - app version, iOS version, device model (e.g. iPhone17,2), language
+- crash and hang reports that iOS gives the app (MetricKit): exception type, signal, hang length, and the
+  call stack as memory addresses; they contain no app data
 
 Each event carries a random ID created on this install; turning the switch off deletes it. No location
 (GeoIP is disabled), no person profiles, no IDFA, and never your tasks, screenshots, screen video, typed
