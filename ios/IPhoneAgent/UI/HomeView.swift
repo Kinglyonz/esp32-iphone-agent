@@ -18,6 +18,8 @@ struct HomeView: View {
     @FocusState private var editing: Bool
     @State private var renaming = false
     @State private var pullingToRefresh = false
+    @State private var showingDeleteError = false
+    @State private var deleteError = ""
 
     var body: some View {
         NavigationStack {
@@ -30,7 +32,7 @@ struct HomeView: View {
                 }
                 if app.help != nil { HelpPanel(app: app) }
                 if let stage = app.recovering { RecoveryPanel(app: app, stage: stage) }
-                if agent.running || app.runMood != nil { liveSection }
+                if agent.running || app.runMood != nil, let card = runCard { liveSection(card) }
                 taskSection
                 intentSection
             }
@@ -80,9 +82,15 @@ struct HomeView: View {
             } message: {
                 Text("I'll tell you when a run is done or needs your help, since you won't see this app while I work. Before paying, sending a message or deleting anything I stop and ask you in a notification: press and hold it to answer.")
             }
-            .overlay { if app.departing { DepartureOverlay() } }
+            .overlay {
+                if app.departing {
+                    DepartureOverlay(message: app.homeHint ?? String(localized: "Going to the Home Screen…")) {
+                        Task { await app.stopAgent() }
+                    }
+                }
+            }
             .overlay(alignment: .top) {
-                if let hint = app.homeHint {
+                if let hint = app.homeHint, !app.departing {
                     Label { Text(verbatim: hint) } icon: { Image(systemName: "arrow.up.to.line") }
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, Space.l).padding(.vertical, Space.s)
@@ -93,18 +101,21 @@ struct HomeView: View {
             }
             .animation(.easeOut(duration: 0.25), value: app.homeHint)
             .overlay(alignment: .topTrailing) {  // right under the record button
-                if !agent.running {
+                if !agent.running && !app.startingAgent {
                     CalibrateButton(calibrator: app.calibrator, board: board, pointer: app.pointer)
                         .padding(.trailing, Space.l).padding(.top, Space.xs)
                 }
             }
-            .safeAreaInset(edge: .bottom) { bottomBar }
+            .safeAreaInset(edge: .bottom) { if !app.departing { bottomBar } }
             .alert("Save as intent", isPresented: $naming) {
                 TextField("Name", text: $intentName)
                 Button("Save") { intents.add(name: intentName, prompt: task); Haptics.success() }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Run it again later with one tap.")
+            }
+            .alert("Could not delete run", isPresented: $showingDeleteError) {} message: {
+                Text(verbatim: deleteError)
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: agent.running)
         }
@@ -156,11 +167,17 @@ struct HomeView: View {
 
     // MARK: - sections
 
-    private var liveSection: some View {
+    private var runCard: RunCardSnapshot? {
+        RunCardSnapshot.select(running: agent.running, liveTask: agent.task, liveSteps: agent.steps,
+                               liveFrame: feed.frame, storedRun: agent.running ? nil : app.runs.run(app.runID))
+    }
+
+    private func liveSection(_ card: RunCardSnapshot) -> some View {
         Section {
             HStack(alignment: .top, spacing: Space.m) {
                 Group {
-                    if let jpeg = feed.frame, let img = UIImage(data: jpeg) {
+                    if let img = card.frame.flatMap({ UIImage(data: $0) })
+                        ?? card.cover.flatMap({ UIImage(contentsOfFile: $0.path) }) {
                         Image(uiImage: img).resizable().scaledToFit()
                     } else {
                         Color(uiColor: .tertiarySystemFill)
@@ -169,22 +186,36 @@ struct HomeView: View {
                 .frame(width: 64, height: 138)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: Space.s) {
-                    Text(verbatim: agent.task).font(.headline).lineLimit(2)
-                    if let last = agent.steps.last {
+                    Text(verbatim: card.task).font(.headline).lineLimit(2)
+                    if let last = card.lastStep {
                         Label { Text(verbatim: StepText.line(last)).lineLimit(3) } icon: {
                             Image(systemName: StepText.symbol(last["action"]?.str))
                         }
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     }
-                    ProgressView(value: Double(min(app.moveCount, agent.maxSteps)), total: Double(agent.maxSteps))
-                    Text("Step \(app.moveCount) of up to \(agent.maxSteps)")
+                    ProgressView(value: Double(min(card.moveCount, agent.maxSteps)), total: Double(agent.maxSteps))
+                    Text("Step \(card.moveCount) of up to \(agent.maxSteps)")
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
             }
             .padding(.vertical, Space.xs)
         } header: {
-            Text(agent.running ? "Now" : "Last run")
+            HStack {
+                Text(agent.running ? "Now" : "Last run")
+                Spacer()
+                if let run = card.storedRun, app.canDeleteRun(run) {
+                    Menu("Last run options", systemImage: "ellipsis") {
+                        Button("Delete run", systemImage: "trash", role: .destructive) {
+                            do { try app.deleteRun(run) }
+                            catch { deleteError = error.localizedDescription; showingDeleteError = true }
+                        }
+                    }
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(.secondary)
+                    .textCase(nil)
+                }
+            }
         }
     }
 
@@ -260,7 +291,10 @@ struct HomeView: View {
 
     private var bottomBar: some View {
         BottomBar {
-            if agent.running {
+            if app.startingAgent {
+                Button { Task { await app.stopAgent() } } label: { Label("Cancel", systemImage: "xmark") }
+                    .buttonStyle(BigButton(tint: Palette.stop))
+            } else if agent.running {
                 Button {
                     Haptics.stop()
                     Task { await app.stopAgent() }

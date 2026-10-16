@@ -163,8 +163,8 @@ struct Run: Identifiable, Equatable {
         runs.first { $0.id == id } ?? Self.load(traces.root.appendingPathComponent(id))
     }
 
-    func delete(_ run: Run) {
-        try? FileManager.default.removeItem(at: run.folder)
+    func delete(_ run: Run) throws {
+        try FileManager.default.removeItem(at: run.folder)
         runs.removeAll { $0.id == run.id }
     }
 }

@@ -14,6 +14,23 @@ struct IslandStatus: Equatable {
 
     static let compactLimit = 16
 
+    static var leavingApp: Self {
+        Self(short: String(localized: "Going home"), full: String(localized: "Going to the Home Screen…"),
+             look: .zero, minimal: String(localized: "Home"))
+    }
+
+    static var waitingForBoard: Self {
+        Self(short: String(localized: "Reconnecting…"),
+             full: String(localized: "Board disconnected. Move it closer; I’ll continue when it reconnects."),
+             look: nil, minimal: String(localized: "Board"))
+    }
+
+    static var boardSlow: Self {
+        Self(short: String(localized: "Board slow"),
+             full: String(localized: "Board not responding. Move it closer or reconnect."),
+             look: nil, minimal: String(localized: "Board"))
+    }
+
     static var pausedInApp: Self {
         Self(short: String(localized: "Paused"),
              full: String(localized: "Paused while you're here. Go to the Home Screen and I'll go on."),

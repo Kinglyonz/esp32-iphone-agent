@@ -13,19 +13,39 @@ extension AppModel {
     /// Start a task (or a saved intent: its checklist goes to the actor as hints).
     func run(_ task: String, intent: SavedTask? = nil) async {
         guard !startingAgent, !agent.running, !recorder.recording else { return }
-        startingAgent = true
-        defer { startingAgent = false }
         currentIntent = intent
         lastTask = task
         agent.hints = intent?.checklist ?? []
-        departing = true
-        try? await Task.sleep(nanoseconds: 800_000_000)  // "See you later" (DepartureOverlay)
-        departing = false
         await startAgent(task)
     }
 
+    /// Own the startup task for every entry point, including shortcuts and consent/recovery retries.
     func startAgent(_ task: String) async {
+        guard !startingAgent, !agent.running else { return }
+        startingAgent = true
+        tab = .agent
+        startupBoardIssue = false
+        lastRunDoing = nil
+        startupDeadline = now() + Recovery.limit
+        homeHint = String(localized: "Preparing the run…")
+        defer {
+            startingAgent = false
+            departing = false
+            homeHint = nil
+            startupTask = nil
+            if !agent.running {
+                recovering = nil
+                notifier.clearLinkAsks()
+            }
+        }
+        let job = Task { await self.prepareAgent(task) }
+        startupTask = job
+        await withTaskCancellationHandler(operation: { await job.value }, onCancel: { job.cancel() })
+    }
+
+    private func prepareAgent(_ task: String) async {
         if MockMode.on { return mockRun(task) }
+        guard !Task.isCancelled else { return }
         guard settings.isConfigured else {
             Analytics.capture("run_blocked", ["reason": "model_not_set"])
             say(String(localized: "Set up the model in Settings first."))
@@ -41,6 +61,7 @@ extension AppModel {
             say(String(localized: "The pointer isn't calibrated yet."))
             return
         }
+        guard !Task.isCancelled else { return }
         do {
             agent.actor = try await settings.client("actor")
             agent.planner = try await settings.client("planner")
@@ -49,6 +70,7 @@ extension AppModel {
             say("LLM: \(error.localizedDescription)")
             return
         }
+        guard !Task.isCancelled else { return }
         // Start is tapped in this app, so: Live Activity, go Home, let the screen settle, THEN the first
         // frame for the planner. Each sub-step is timed in the log.
         let t0 = now()
@@ -61,54 +83,74 @@ extension AppModel {
         let snapMode = FrameMode.current == .snap
         live.start(task: task, runID: runID, limit: agent.maxSteps)
         mark("Live Activity requested")
+        departing = true
+        homeHint = String(localized: "Going to the Home Screen…")
+        live.show(.leavingApp, mood: .thinking)
         do {
+            try await Task.sleep(nanoseconds: 800_000_000)  // only the character fades; guidance remains
             if snapMode {
-                if feed.streamOn { try await feed.stream(false) }
+                if feed.streamOn { try await startupBoardCommand { try await feed.stream(false) } }
                 mark("snap-per-step mode (stream off)")
             } else {
-                try await feed.stream(true)  // the agent waits for the screen to settle: it needs every change
+                try await startupBoardCommand { try await feed.stream(true) }  // reconnect before resuming startup
                 mark("stream on")
             }
             backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "agent") { [weak self] in
                 self?.say("iOS is ending background time; BLE status keeps the run going")
                 self?.endBackgroundTask()
             }
-            let left = now()
-            var away = await leaveApp()
-            if !away { away = await askUserToLeave() }
+            let requestedAt = appIsBackgrounded && backgroundEnteredAt > 0 ? backgroundEnteredAt : now()
+            let frameBoundary = StartupFrameBoundary(requestedAt: requestedAt)
+            var away = try await leaveApp()
+            if !away { away = try await askUserToLeave() }
+            try Task.checkCancellation()
             guard away else {  // never let the agent start on its own app
                 throw DeviceError(message: String(localized: "ESP32 Agent is still on screen"))
             }
+            departing = false
+            homeHint = nil
             mark("app in background")
-            if !snapMode {
-                let changed = await feed.fresh(since: left, timeout: 3) != nil
-                await feed.settled()
-                mark(changed ? "screen changed and settled" : "no screen change seen in 3 s; settled")
+            let frameSource = try await waitForStartupFrame(boundary: frameBoundary, snapMode: snapMode)
+            try Task.checkCancellation()
+            guard appIsBackgrounded,
+                  frameBoundary.accepts(capturedAt: feed.capturedAt, backgroundEnteredAt: backgroundEnteredAt) else {
+                throw DeviceError(message: String(localized: "ESP32 Agent is still on screen"))
             }
-            mark("first frame: " + (try await feed.currentFrame()))
+            mark("first frame: " + frameSource)
             try agent.start(task, traceStarted: true)
             mark("agent started")
             say("started: \(task)")
             began(task, early: true)
         } catch {
-            say("cannot start: \(error.localizedDescription)")
-            traces.write(feed.frame, kind: "step", ["action": .str("error"),
-                                                    "reason": .str("cannot start: \(error.localizedDescription)")])
+            let cancelled = Task.isCancelled || error is CancellationError
+            Analytics.capture("run_ended", ModelUsage().props.merging([
+                "outcome": cancelled ? "stopped" : "failed", "phase": "startup", "steps": 0,
+                "seconds": Int(now() - t0), "from_intent": currentIntent != nil
+            ]) { $1 })
+            Analytics.flush()
+            say(cancelled ? String(localized: "Run start cancelled.") : "cannot start: \(error.localizedDescription)")
+            traces.write(feed.frame, kind: "step", ["action": .str(cancelled ? "stopped" : "error"),
+                                                    "reason": .str(cancelled ? "cancelled before agent start" : "cannot start: \(error.localizedDescription)")])
             videoSink = nil
             saveVideoFrame(feed.frame)
             videoDir = nil
-            live.end((.failure, String(localized: "Could not start")))
+            live.end(cancelled ? (.idle, String(localized: "Stopped")) : (.failure, error.localizedDescription))
             endBackgroundTask()
+            Task { try? await feed.stream(false) }
             runs.reload()
-            runMood = .failure
-            notifier.post(.failed, title: String(localized: "Could not start"),
-                          body: error.localizedDescription, run: runID)
-            openReview(run: runID)
+            runMood = cancelled ? nil : .failure
+            if !cancelled {
+                notifier.post(.failed, title: String(localized: "Could not start"),
+                              body: error.localizedDescription, run: runID)
+                openReview(run: runID)
+            }
         }
     }
 
     /// Emergency stop: cancel the agent and release the mouse button.
     func stopAgent() async {
+        startupTask?.cancel()
+        if startingAgent && calibrator.busy { calibrator.cancel() }
         answerHelp(.stop)
         mockJob?.cancel()
         agent.stop()
@@ -151,7 +193,8 @@ extension AppModel {
 
     /// Between steps: what the character says in the Dynamic Island and where its eyes go.
     func doing(_ d: AgentLoop.Doing) {
-        guard agent.running, help == nil else { return }
+        lastRunDoing = d
+        guard agent.running, help == nil, recovering == nil else { return }
         switch d {
         case .looking: live.show(.looking, mood: .thinking)
         case .waiting: live.show(.waiting, mood: .thinking)
@@ -166,6 +209,7 @@ extension AppModel {
     func modelCalled(_ call: ModelCall) {
         runUsage.add(call)
         Analytics.capture("model_request", settings.analyticsModel(call))
+        Analytics.flush()
     }
 
     /// The run ended: outcome on the character, Live Activity and a notification; then the review opens.
@@ -183,6 +227,7 @@ extension AppModel {
         let seconds = Date().timeIntervalSince(runStarted)
         Analytics.capture("run_ended", runUsage.props.merging(["outcome": "\(outcome)", "steps": moveCount,
                                                                "seconds": Int(seconds), "from_intent": currentIntent != nil]) { $1 })
+        Analytics.flush()
         runMood = outcome.mood
         live.end((outcome.mood, last.map(StepText.line) ?? ""))
         runs.reload()

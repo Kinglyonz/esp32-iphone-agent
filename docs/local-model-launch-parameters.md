@@ -9,7 +9,17 @@ xcrun devicectl device process launch --device <DEVICE_ID> --terminate-existing 
 
 Both `-llm-base-url` and `-llm-model` are required, once each. The endpoint must use HTTP or HTTPS and have a host; embedded credentials, query strings, and fragments are rejected. An invalid import leaves saved settings unchanged and skips the requested startup test or run.
 
-Importing selects **Others**, clears the previous API key and model overrides, and resets advanced request options before saving the supplied endpoint and model. A server that requires authentication can receive an optional `IA_LLM_API_KEY` process environment variable through the development launcher. The app saves that key in the Keychain; the importer never accepts a key argument or logs parameter values. Omit the environment variable to configure a server without authentication; an old cloud key is never carried over, even when the host is unchanged.
+The optional `-llm-extra-body` accepts one JSON object of provider-specific request options and saves it with the selection. If omitted, the extra body is `{}`. Repeated flags, missing values, invalid JSON, arrays and scalar values are rejected before any settings or credentials change. Passing this flag alone without the endpoint and model is also rejected.
+
+For a provider that supports `chat_template_kwargs.enable_thinking`, disable thinking explicitly at runtime:
+
+```sh
+xcrun devicectl device process launch --device <DEVICE_ID> --terminate-existing <BUNDLE_ID> -- \
+  -llm-base-url 'https://<API_HOST>/v1' -llm-model '<VISION_MODEL_ID>' \
+  -llm-extra-body '{"chat_template_kwargs":{"enable_thinking":false}}' -test-model
+```
+
+This is an optional provider setting, not an app-wide default. Use only options supported by the selected server. Importing selects **Others**, clears the previous API key and role-specific model overrides, and resets token-parameter selection to automatic before saving the supplied endpoint, model and extra body. A server that requires authentication can receive an optional `IA_LLM_API_KEY` process environment variable through the development launcher. The app saves that key in the Keychain; the importer never accepts a key argument or logs arguments or the extra body. Omit the environment variable to configure a server without authentication; an old cloud key is never carried over, even when the host is unchanged.
 
 These import flags are compiled only in Debug builds. They do not add a configuration URL that a web page can invoke. Existing App Store AI-service and analytics consent settings are unchanged.
 

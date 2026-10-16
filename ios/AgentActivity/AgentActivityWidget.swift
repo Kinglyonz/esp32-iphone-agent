@@ -26,7 +26,7 @@ struct AgentLiveActivity: Widget {
             let s = context.state
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Eyes(state: s).frame(width: 44, height: 44).padding(.leading, 4)
+                    Eyes(state: s).padding(4).frame(width: 44, height: 44).padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Counter(state: s).font(.headline).padding(.trailing, 4)
@@ -54,7 +54,7 @@ struct AgentLiveActivity: Widget {
                 if s.phase == .recording {
                     Image(systemName: "record.circle.fill").foregroundStyle(.red)
                 } else {
-                    Eyes(state: s).frame(width: 24, height: 24)
+                    Eyes(state: s).padding(3).frame(width: 24, height: 24)
                 }
             } compactTrailing: {
                 if s.phase == .recording && !s.finished {
@@ -66,10 +66,9 @@ struct AgentLiveActivity: Widget {
                 if s.phase == .recording {
                     Image(systemName: "record.circle.fill").foregroundStyle(.red)
                 } else {
-                    // The only surface while Screen Mirroring is up: just the face, its mood and gaze change
-                    // with each real update (no idle updates, they make the whole island flicker).
-                    Eyes(state: s).frame(width: 24, height: 24)
-                        .accessibilityLabel(Text(verbatim: s.labelFull))
+                    // Screen Mirroring shares the island and leaves only this small presentation.
+                    // Prioritize the real phase; the character remains in compact/expanded layouts.
+                    AgentMinimalStatus(state: s)
                 }
             }
             .widgetURL(AgentActivityAttributes.url(run: context.attributes.runID))

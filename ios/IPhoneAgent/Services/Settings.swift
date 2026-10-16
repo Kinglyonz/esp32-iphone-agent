@@ -155,7 +155,7 @@ import UIKit
         plannerModel = ""
         actorModel = ""
         tokenParam = "auto"
-        extraBody = "{}"
+        extraBody = config.extraBody
         apiKey = config.apiKey
         modelsChanged()  // invalidate lists and connection results even if endpoint/model did not change
         return true

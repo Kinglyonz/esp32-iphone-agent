@@ -52,6 +52,12 @@ import UIKit
     @Published var takingOver = false
     @Published var departing = false  // the character's take-off before a run
     @Published var startingAgent = false
+    var startupTask: Task<Void, Never>?
+    var startupBoardIssue = false
+    var startupDeadline = 0.0
+    var backgroundEnteredAt = 0.0
+    var linkRecoveryDisplay: Recovery?
+    var lastRunDoing: AgentLoop.Doing?
     /// A banner on Home: the app could not leave by itself (swipe up), or the run waits while the app is in front.
     @Published var homeHint: String?
     var resumeAsked = 0.0  // when Continue was tapped in the app
@@ -115,6 +121,7 @@ import UIKit
             if let up = s.up { self?.feed.boardClock(ms: up) }
             self?.metrics.status(s)
             self?.logStatus(s)
+            self?.refreshLinkRecoveryDisplay()
         }
         board.onLinkUp = { [weak self] in
             guard let self else { return }
@@ -129,7 +136,11 @@ import UIKit
                 }
             }
         }
-        board.onLinkDown = { [weak self] in self?.feed.linkLost() }
+        board.onLinkDown = { [weak self] in
+            self?.feed.linkLost()
+            self?.startupBoardUnavailable(disconnected: true)
+            self?.beginLinkRecoveryDisplay()
+        }
         board.commands.onTimeout = { [weak self] command in await self?.commandTimedOut(command) }
         DebugLog.write("frame mode: \(FrameMode.current.rawValue)")
         board.commands.onTiming = { [weak self] name, ms in self?.metrics.hidMs[name] = ms }
@@ -154,7 +165,11 @@ import UIKit
         })
         let center = NotificationCenter.default
         center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.metrics.enteredBackground(); DebugLog.write("app: background") }
+            MainActor.assumeIsolated {
+                self?.backgroundEnteredAt = now()
+                self?.metrics.enteredBackground()
+                DebugLog.write("app: background")
+            }
         }
         center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.metrics.enteredForeground(); DebugLog.write("app: foreground") }
@@ -167,6 +182,7 @@ import UIKit
 
     /// Every second: metrics; a suspension note; the stream's numbers every 10 s while a run goes.
     private func tick() {
+        refreshLinkRecoveryDisplay()
         let before = metrics.suspensions, gap = now() - lastTick
         metrics.tick()
         lastTick = now()
@@ -184,6 +200,7 @@ import UIKit
     /// A command timed out: video may be starving the board's control traffic. Stop the stream and run
     /// snap-per-step for the rest of this run (the next run streams again).
     private func commandTimedOut(_ command: String) async {
+        startupBoardUnavailable(disconnected: !board.connected)
         DebugLog.write("cmd timeout on '\(command.prefix(30))': stream off, snap-per-step for this run")
         FrameMode.fallback = .snap
         if feed.streamOn { _ = try? await feed.stream(false) }
@@ -290,6 +307,7 @@ import UIKit
         defer {
             modelTestStarted = nil
             if revision == settings.configurationRevision { modelTestSeconds = now() - started }
+            Analytics.flush()
         }
         do {
             let client = try await settings.client("actor")

@@ -104,6 +104,29 @@ final class StubProtocol: URLProtocol {
         let noKey = try XCTUnwrap(ModelLaunchConfiguration.parse(
             ["app", "-llm-base-url", "https://model-server.local/v1", "-llm-model", "vision"]))
         XCTAssertEqual(noKey.apiKey, "")
+        XCTAssertEqual(noKey.extraBody, "{}")
+    }
+
+    func testLaunchModelConfigurationParsesOptionalProviderOptionsAsJSON() throws {
+        let parsed = try XCTUnwrap(ModelLaunchConfiguration.parse([
+            "app", "-llm-base-url", "https://model-server.local/v1", "-llm-model", "vision",
+            "-llm-extra-body", " { \"top_p\": 0.8, \"chat_template_kwargs\": { \"enable_thinking\": false } } "
+        ]))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(parsed.extraBody.utf8)) as? [String: Any])
+        XCTAssertEqual((object["chat_template_kwargs"] as? [String: Any])?["enable_thinking"] as? Bool, false)
+        XCTAssertEqual(try XCTUnwrap(object["top_p"] as? Double), 0.8, accuracy: 0.000001)
+    }
+
+    func testLaunchModelConfigurationRejectsMissingDuplicateOrNonObjectExtraBody() {
+        let base = ["app", "-llm-base-url", "https://model-server.local/v1", "-llm-model", "vision"]
+        for args in [base + ["-llm-extra-body"], base + ["-llm-extra-body", " "],
+                     base + ["-llm-extra-body", "{}", "-llm-extra-body", "{}"],
+                     ["app", "-llm-extra-body", "{}"]] {
+            XCTAssertThrowsError(try ModelLaunchConfiguration.parse(args))
+        }
+        for body in ["{", "[]", "true", "null", "42", "\"string\""] {
+            XCTAssertThrowsError(try ModelLaunchConfiguration.parse(base + ["-llm-extra-body", body]))
+        }
     }
 
     func testLaunchModelConfigurationRejectsMissingDuplicateOrUnsafeInput() {
@@ -183,6 +206,25 @@ final class StubProtocol: URLProtocol {
         XCTAssertEqual(Settings(defaults: defaults, info: [:]).apiKey, "new-local-server-key")
     }
 
+    func testLaunchModelImportAppliesAndPersistsExplicitProviderOptions() throws {
+        let name = "launch-model-options-test-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = Settings(defaults: defaults, info: [:])
+        defer { settings.apiKey = "" }
+        settings.extraBody = "{\"old_provider_option\":true}"
+        XCTAssertTrue(try settings.importLaunchConfiguration(arguments: [
+            "app", "-llm-base-url", "https://model-server.local/v1", "-llm-model", "vision",
+            "-llm-extra-body", "{\"chat_template_kwargs\":{\"enable_thinking\":false}}"
+        ]))
+        let options = try XCTUnwrap(settings.extra["chat_template_kwargs"] as? [String: Any])
+        XCTAssertEqual(options["enable_thinking"] as? Bool, false)
+        XCTAssertNil(settings.extra["old_provider_option"])
+        let reloaded = Settings(defaults: defaults, info: [:])
+        XCTAssertEqual(reloaded.extraBody, settings.extraBody)
+        XCTAssertEqual((reloaded.extra["chat_template_kwargs"] as? [String: Any])?["enable_thinking"] as? Bool, false)
+    }
+
     func testInvalidLaunchModelImportLeavesConfigurationUnchanged() throws {
         let name = "launch-model-invalid-test-" + UUID().uuidString
         let defaults = UserDefaults(suiteName: name)!
@@ -192,17 +234,30 @@ final class StubProtocol: URLProtocol {
         settings.selectProvider(.openRouter)
         settings.apiKey = "existing-test-key"
         settings.plannerModel = "existing-planner"
+        settings.actorModel = "existing-actor"
+        settings.extraBody = "{\"existing_option\":true}"
         let revision = settings.configurationRevision
         let saved = defaults.persistentDomain(forName: name) as NSDictionary?
         XCTAssertThrowsError(try settings.importLaunchConfiguration(arguments:
             ["app", "-llm-base-url", "http://user@model-server.local/v1", "-llm-model", "vision"],
             environment: ["IA_LLM_API_KEY": "ignored-test-key"]))
         XCTAssertThrowsError(try settings.importLaunchConfiguration(arguments: ["app", "-llm-model", "vision"]))
+        let base = ["app", "-llm-base-url", "https://model-server.local/v1", "-llm-model", "vision"]
+        for args in [base + ["-llm-extra-body"],
+                     base + ["-llm-extra-body", "{}", "-llm-extra-body", "{}"],
+                     base + ["-llm-extra-body", "[]"],
+                     base + ["-llm-extra-body", "{"],
+                     ["app", "-llm-extra-body", "{}"]] {
+            XCTAssertThrowsError(try settings.importLaunchConfiguration(arguments: args,
+                environment: ["IA_LLM_API_KEY": "ignored-test-key"]))
+        }
         XCTAssertFalse(try settings.importLaunchConfiguration(arguments: ["app", "-test-model"]))
         XCTAssertEqual(settings.provider, .openRouter)
         XCTAssertEqual(settings.baseURL, ModelProvider.openRouter.baseURL)
         XCTAssertEqual(settings.apiKey, "existing-test-key")
         XCTAssertEqual(settings.plannerModel, "existing-planner")
+        XCTAssertEqual(settings.actorModel, "existing-actor")
+        XCTAssertEqual(settings.extraBody, "{\"existing_option\":true}")
         XCTAssertEqual(settings.configurationRevision, revision)
         XCTAssertEqual(defaults.persistentDomain(forName: name) as NSDictionary?, saved)
     }

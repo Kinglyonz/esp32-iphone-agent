@@ -1,6 +1,246 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "The board answered, but no new screen image arrived. Keep Screen Mirroring connected and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "板子已响应，但尚未收到新的屏幕画面。请保持屏幕镜像连接后重试。"
+          }
+        }
+      }
+    },
+    "no fresh screen image arrived in 5 minutes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 分钟内没有收到新的屏幕画面"
+          }
+        }
+      }
+    },
+    "Waiting frame…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待画面…"
+          }
+        }
+      }
+    },
+    "Mirroring is connected. Waiting for a fresh screen image…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "镜像已连接，正在等待新的屏幕画面…"
+          }
+        }
+      }
+    },
+    "No new frame": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有新画面"
+          }
+        }
+      }
+    },
+    "Mirroring is connected, but no new screen image has arrived.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "镜像已连接，但仍未收到新的屏幕画面。"
+          }
+        }
+      }
+    },
+    "Frame": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面"
+          }
+        }
+      }
+    },
+    "Stop and restart Screen Mirroring → ESP32 Agent; I’ll continue when a fresh image arrives.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请停止并重新开启「屏幕镜像 → ESP32 Agent」，收到新画面后我会继续。"
+          }
+        }
+      }
+    },
+    "Waiting for a screen image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待屏幕画面"
+          }
+        }
+      }
+    },
+    "Last run options": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次运行选项"
+          }
+        }
+      }
+    },
+    "Delete run": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除运行记录"
+          }
+        }
+      }
+    },
+    "Could not delete run": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法删除运行记录"
+          }
+        }
+      }
+    },
+    "Stop the run before deleting it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先停止运行，再删除记录。"
+          }
+        }
+      }
+    },
+    "Mirror": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "镜像"
+          }
+        }
+      }
+    },
+    "Preparing the run…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在准备任务…"
+          }
+        }
+      }
+    },
+    "The board disconnected. Move it closer to your iPhone, reconnect, then try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "板子已断开。请移近 iPhone，重新连接后再试。"
+          }
+        }
+      }
+    },
+    "The board isn't responding. Move it closer to your iPhone, or swipe up to continue.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "板子没有响应。请移近 iPhone，或上滑返回主屏幕以继续。"
+          }
+        }
+      }
+    },
+    "The board connection was lost while starting. Move it closer and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动时板子连接已断开。请移近后重试。"
+          }
+        }
+      }
+    },
+    "Run start cancelled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消启动任务。"
+          }
+        }
+      }
+    },
+    "Going to the Home Screen…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在返回主屏幕…"
+          }
+        }
+      }
+    },
+    "Reconnecting…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在重连…"
+          }
+        }
+      }
+    },
+    "Board slow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "板子响应慢"
+          }
+        }
+      }
+    },
+    "Board disconnected. Move it closer; I’ll continue when it reconnects.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "板子已断开。请移近，重新连接后我会继续。"
+          }
+        }
+      }
+    },
+    "Board not responding. Move it closer or reconnect.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "板子没有响应，请移近或重新连接。"
+          }
+        }
+      }
+    },
     "The run is still active. Return to the Home Screen to continue." : {
       "localizations" : {
         "zh-Hans" : {

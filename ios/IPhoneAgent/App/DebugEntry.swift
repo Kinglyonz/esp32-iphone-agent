@@ -6,20 +6,23 @@ struct ModelLaunchConfiguration {
     let baseURL: String
     let model: String
     let apiKey: String
+    let extraBody: String
 
     enum ParseError: LocalizedError {
-        case arguments, endpoint
+        case arguments, endpoint, extraBody
         var errorDescription: String? {
             switch self {
-            case .arguments: return "Use -llm-base-url and -llm-model together, once each, with nonempty values."
+            case .arguments: return "Use -llm-base-url and -llm-model together, once each, with nonempty values. The optional -llm-extra-body must also have one value and appear only once."
             case .endpoint: return "The model endpoint must be an HTTP or HTTPS URL with a host and no credentials, query, or fragment."
+            case .extraBody: return "The extra request body must be a valid JSON object."
             }
         }
     }
 
     static func parse(_ args: [String], environment: [String: String] = [:]) throws -> Self? {
         let flags = ["-llm-base-url", "-llm-model"]
-        guard flags.contains(where: args.contains) else { return nil }
+        let extraFlag = "-llm-extra-body"
+        guard (flags + [extraFlag]).contains(where: args.contains) else { return nil }
         func value(_ flag: String) throws -> String {
             let positions = args.indices.filter { args[$0] == flag }
             guard positions.count == 1, let index = positions.first, index + 1 < args.count else {
@@ -36,8 +39,18 @@ struct ModelLaunchConfiguration {
               parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil else {
             throw ParseError.endpoint
         }
+        var extraBody = "{}"
+        if args.contains(extraFlag) {
+            let raw = try value(extraFlag)
+            guard let object = (try? JSONSerialization.jsonObject(with: Data(raw.utf8))) as? [String: Any],
+                  let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys, .withoutEscapingSlashes]) else {
+                throw ParseError.extraBody
+            }
+            extraBody = String(decoding: data, as: UTF8.self)
+        }
         return Self(baseURL: baseURL, model: model,
-                    apiKey: environment["IA_LLM_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                    apiKey: environment["IA_LLM_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                    extraBody: extraBody)
     }
 }
 #endif

@@ -23,6 +23,28 @@ struct AgentActivityAttributes: ActivityAttributes {
         var lookY = 0.0
 
         var look: CGPoint { CGPoint(x: lookX, y: lookY) }
+
+        /// The shared-island bubble must show a phase, including states restored from older builds.
+        var minimalStatusText: String {
+            for text in [minimalLabel, label] {
+                if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return text.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+            if finished {
+                switch mood {
+                case .success: return String(localized: "Done")
+                case .failure: return String(localized: "Error")
+                default: return String(localized: "Stop")
+                }
+            }
+            return phase == .help ? String(localized: "Help") : String(localized: "Wait")
+        }
+
+        var statusAccessibilityText: String {
+            let full = labelFull.trimmingCharacters(in: .whitespacesAndNewlines)
+            return full.isEmpty ? minimalStatusText : full
+        }
     }
 
     var task: String
