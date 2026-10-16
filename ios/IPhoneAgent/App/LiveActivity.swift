@@ -10,6 +10,8 @@ import Foundation
 @MainActor final class LiveActivityController {
     typealias State = AgentActivityAttributes.ContentState
     private var activity: Activity<AgentActivityAttributes>?
+    private var recentlyEnded: Activity<AgentActivityAttributes>?
+    private var recentEndTask: Task<Void, Never>?
     private var last: State?    // the newest state (sent or waiting for a token)
     private var sent: State?
     private var tokens = 2.0, refilled = 0.0
@@ -79,9 +81,40 @@ import Foundation
         self.activity = nil
         last = nil
         sent = nil
-        Task {
+        let completion = Task {
             await activity.end(.init(state: state, staleDate: nil),
                                dismissalPolicy: outcome == nil ? .immediate : .after(.now + 15 * 60))
+        }
+        if outcome != nil {
+            recentlyEnded = activity
+            recentEndTask = completion
+        }
+    }
+
+    /// A deleted run must also disappear from the Lock Screen, including its retained finished activity.
+    func dismiss(runID: String) {
+        var matches = Activity<AgentActivityAttributes>.activities.filter { $0.attributes.runID == runID }
+        if let activity, activity.attributes.runID == runID {
+            matches.append(activity)
+            stopDarting()
+            flush?.cancel()
+            flush = nil
+            self.activity = nil
+            last = nil
+            sent = nil
+        }
+        let pending = recentlyEnded?.attributes.runID == runID ? recentEndTask : nil
+        if let recentlyEnded, recentlyEnded.attributes.runID == runID {
+            matches.append(recentlyEnded)
+            self.recentlyEnded = nil
+            recentEndTask = nil
+        }
+        var seen: Set<String> = []
+        let unique = matches.filter { seen.insert($0.id).inserted }
+        guard !unique.isEmpty else { return }
+        Task {
+            await pending?.value  // the earlier delayed-dismissal end must finish before immediate removal
+            for activity in unique { await activity.end(nil, dismissalPolicy: .immediate) }
         }
     }
 

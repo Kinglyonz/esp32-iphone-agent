@@ -63,3 +63,98 @@ final class VideoTests: XCTestCase {
         XCTAssertEqual(units[0], Data([0x67, 1, 2]))
     }
 }
+
+
+/// A snap acknowledgement cannot stand in for a newly decoded image.
+@MainActor final class VideoFeedTests: XCTestCase {
+    func testSnapRejectsAcknowledgementWithoutANewDecodedImage() async throws {
+        let device = FrameDevice(), feed = VideoFeed()
+        feed.device = device
+        feed.show(Data([1]), width: 10, height: 20)
+        do {
+            _ = try await feed.snap(decodeWait: 0.02)
+            XCTFail("An acknowledged snap with only the old frame must fail")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("no new screen image"))
+        }
+        XCTAssertEqual(feed.frame, Data([1]))
+        XCTAssertTrue(feed.broken)
+    }
+
+    func testSnapWaitsForDecodedImageAfterAcknowledgement() async throws {
+        let device = FrameDevice(), feed = VideoFeed()
+        feed.device = device
+        device.onSend = { _ in
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(25))
+                feed.show(Data([2]), width: 10, height: 20)
+            }
+        }
+        _ = try await feed.snap(decodeWait: 0.5)
+        XCTAssertEqual(feed.frame, Data([2]))
+        XCTAssertFalse(feed.broken)
+    }
+
+    func testLateDecodedImageFromDisconnectedLinkCannotReplaceTheScreen() async throws {
+        let decoder = H264Decoder(), feed = VideoFeed(decoder: decoder)
+        feed.show(Data([1]), width: 10, height: 20)
+        let previous = feed.updated
+        feed.linkLost()
+        let old = H264Decoder.Frame(jpeg: Data([9]), width: 10, height: 20, decodeMs: 1,
+                                    unit: AccessUnit(data: Data(), idr: true, config: false, snap: false, boardMs: 0))
+        decoder.onFrame?(old)
+        try await Task.sleep(for: .milliseconds(25))
+        XCTAssertEqual(feed.frame, Data([1]))
+        XCTAssertEqual(feed.updated, previous)
+        XCTAssertTrue(feed.broken)
+        feed.show(Data([2]), width: 10, height: 20)
+        XCTAssertEqual(feed.frame, Data([2]))
+        XCTAssertFalse(feed.broken)
+    }
+
+    func testSnapRejectsNewImageWhenSubsequentVideoChunksWereLost() async {
+        let device = FrameDevice(), feed = VideoFeed()
+        feed.device = device
+        device.onSend = { _ in
+            feed.show(Data([2]), width: 10, height: 20)
+            feed.receive(Data([0, 0, 0]))
+            feed.receive(Data([2, 0, 0]))  // a sequence gap invalidates that image
+        }
+        do {
+            _ = try await feed.snap(decodeWait: 0.02)
+            XCTFail("A newer image followed by a video gap must not pass as a healthy snap")
+        } catch {
+            XCTAssertTrue(feed.broken)
+        }
+    }
+
+    func testStoppingSnapDoesNotWaitForABlockedDecoderQueue() async {
+        let decoder = H264Decoder()
+        decoder.queue.suspend()
+        defer { decoder.queue.resume() }
+        let device = FrameDevice(), feed = VideoFeed(decoder: decoder)
+        feed.device = device
+        let waiting = Task { try await feed.snap(decodeWait: 10) }
+        await Task.yield()
+        waiting.cancel()
+        let stopped = expectation(description: "Cancelled while the decoder queue is still blocked")
+        Task {
+            do {
+                _ = try await waiting.value
+                XCTFail("Cancellation must leave the frame wait")
+            } catch {
+                XCTAssertTrue(error is CancellationError)
+            }
+            stopped.fulfill()
+        }
+        await fulfillment(of: [stopped], timeout: 1)
+    }
+}
+
+@MainActor private final class FrameDevice: HIDDevice {
+    var links = 1
+    var connected = true
+    var onSend: ((String) -> Void)?
+    func send(_ command: String) async throws -> String { onSend?(command); return "ok" }
+    func waitConnected(_ timeout: TimeInterval) async -> Bool { connected }
+}

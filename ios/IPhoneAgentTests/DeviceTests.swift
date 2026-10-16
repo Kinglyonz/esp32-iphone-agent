@@ -156,4 +156,139 @@ import XCTest
         XCTAssertNil(ProbeFit.line([(100, 0.3)]))
         XCTAssertFalse(ProbeFit.usable(0.995))  // stuck at the edge
     }
+
+    func testAppDepartureDoesNotMistakeHomeAcknowledgementForBackground() async throws {
+        var background = false
+        var attempts: [AppDeparture.Method] = []
+        let departure = AppDeparture(isBackground: { background }, isConnected: { true }, attempt: { method in
+            attempts.append(method)
+            if method == .swipe { background = true }
+        }, waitForBackground: { _ in background })
+        let left = try await departure.leave()
+        XCTAssertTrue(left)
+        XCTAssertEqual(attempts, [.homeKey, .shortcut, .swipe])
+    }
+
+    func testAppDepartureUnsupportedHomeKeyStillTriesShortcut() async throws {
+        var background = false
+        var attempts: [AppDeparture.Method] = []
+        var failures = 0
+        let departure = AppDeparture(isBackground: { background }, isConnected: { true }, attempt: { method in
+            attempts.append(method)
+            if method == .homeKey { throw DeviceError(message: "unsupported") }
+            background = true
+        }, waitForBackground: { _ in background }, failed: { _, _ in failures += 1 })
+        let left = try await departure.leave()
+        XCTAssertTrue(left)
+        XCTAssertEqual(attempts, [.homeKey, .shortcut])
+        XCTAssertEqual(failures, 1)
+    }
+
+    func testAppDepartureReconnectsAndRetriesTheSameMethod() async throws {
+        var connected = true
+        var background = false
+        var attempts: [AppDeparture.Method] = []
+        var reconnects = 0
+        let departure = AppDeparture(isBackground: { background }, isConnected: { connected }, attempt: { method in
+            attempts.append(method)
+            if attempts.count == 1 { connected = false; throw DeviceError(message: "link lost") }
+            background = true
+        }, waitForBackground: { _ in background }, waitForConnection: {
+            reconnects += 1
+            connected = true
+        })
+        let left = try await departure.leave()
+        XCTAssertTrue(left)
+        XCTAssertEqual(attempts, [.homeKey, .homeKey])
+        XCTAssertEqual(reconnects, 1)
+    }
+
+    func testAppDepartureCancellationDoesNotSendAnotherGesture() async {
+        var attempts: [AppDeparture.Method] = []
+        var waits = 0
+        let departure = AppDeparture(isBackground: { false }, isConnected: { true }, attempt: { method in
+            attempts.append(method)
+            throw CancellationError()
+        }, waitForBackground: { _ in waits += 1; return false })
+        do {
+            _ = try await departure.leave()
+            XCTFail("Expected cancellation")
+        } catch is CancellationError {} catch { XCTFail("Unexpected error") }
+        XCTAssertEqual(attempts, [.homeKey])
+        XCTAssertEqual(waits, 0)
+    }
+
+    func testAppDepartureCancellationInterruptsBackgroundWait() async {
+        let waiting = expectation(description: "Waiting for iOS background state")
+        var attempts: [AppDeparture.Method] = []
+        let departure = AppDeparture(isBackground: { false }, isConnected: { true }, attempt: { attempts.append($0) },
+                                     waitForBackground: { _ in
+            waiting.fulfill()
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+            return false
+        })
+        let job = Task { try await departure.leave() }
+        await fulfillment(of: [waiting], timeout: 1)
+        job.cancel()
+        do {
+            _ = try await job.value
+            XCTFail("Expected cancellation")
+        } catch is CancellationError {} catch { XCTFail("Unexpected error") }
+        XCTAssertEqual(attempts, [.homeKey])
+    }
+
+    func testAppDepartureFailsBeforeGestureWhenBoardDisconnects() async {
+        var attempts = 0
+        let departure = AppDeparture(isBackground: { false }, isConnected: { false }, attempt: { _ in attempts += 1 },
+                                     waitForBackground: { _ in false })
+        do {
+            _ = try await departure.leave()
+            XCTFail("Expected board failure")
+        } catch { XCTAssertTrue(error.localizedDescription.contains("board disconnected")) }
+        XCTAssertEqual(attempts, 0)
+    }
+
+    func testPhysicalHomeSwipeDoesNotUseAcknowledgedHomeKey() async throws {
+        let device = FakeDevice()
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let pointer = Pointer(device: device, calibrationFile: file)
+        pointer.finishCalibration(x: 0.5, y: 0.25)
+        try await pointer.homeSwipe()
+        XCTAssertTrue(device.sent.contains("press"))
+        XCTAssertEqual(device.sent.last, "release")
+        XCTAssertFalse(device.sent.contains("homescreen"))
+        XCTAssertFalse(device.sent.contains("key cmd+h"))
+        XCTAssertTrue(device.sent.contains("move 0 -436"))  // bottom edge to 45% height, with no end hold
+    }
+
+
+    func testStartupFrameCapturedAfterBackgroundBeforePollingIsAccepted() {
+        let boundary = StartupFrameBoundary(requestedAt: 10)
+        // Background notification at 11; Home image at 11.05; polling observes it at 11.1.
+        XCTAssertTrue(boundary.accepts(capturedAt: 11.05, backgroundEnteredAt: 11))
+        XCTAssertEqual(boundary.threshold(backgroundEnteredAt: 11), 11)
+    }
+
+    func testStartupFrameRejectsOwnAppCaptureFromBeforeActualBackground() {
+        let boundary = StartupFrameBoundary(requestedAt: 10)
+        XCTAssertFalse(boundary.accepts(capturedAt: 10.99, backgroundEnteredAt: 11))
+        XCTAssertFalse(boundary.accepts(capturedAt: 11, backgroundEnteredAt: 11))
+        XCTAssertFalse(boundary.accepts(capturedAt: 0, backgroundEnteredAt: 11))
+    }
+
+    func testStartupFrameFallsBackToDepartureRequestWhenTransitionIsUnknown() {
+        let boundary = StartupFrameBoundary(requestedAt: 10)
+        XCTAssertEqual(boundary.threshold(backgroundEnteredAt: 0), 10)
+        XCTAssertEqual(boundary.threshold(backgroundEnteredAt: 8), 10)  // an earlier app session
+        XCTAssertFalse(boundary.accepts(capturedAt: 9.99, backgroundEnteredAt: 0))
+        XCTAssertTrue(boundary.accepts(capturedAt: 10.01, backgroundEnteredAt: 0))
+    }
+
+    func testStartupAlreadyInBackgroundCanUseItsExistingHomeFrame() {
+        let boundary = StartupFrameBoundary(requestedAt: 8)  // already-backgrounded caller's recorded transition
+        XCTAssertTrue(boundary.accepts(capturedAt: 9, backgroundEnteredAt: 8))
+        XCTAssertFalse(boundary.accepts(capturedAt: 9, backgroundEnteredAt: 11))  // a new app visit supersedes it
+    }
+
 }

@@ -299,9 +299,16 @@ import Foundation
         if (try? await device.send("homescreen")) != nil { return }
         try await key("cmd+h")
         try await Task.sleep(nanoseconds: 350_000_000)
-        try await swipe(0.5, 0.995, 0.5, 0.45, hold: false)
-        pos = nil  // starting at the screen's edge may have clamped the pointer: re-home before the next move
+        try await homeSwipe()
     }
+
+    /// A real home-bar flick, independent of consumer-key and keyboard acknowledgements.
+    func homeSwipe() async throws {
+        defer { pos = nil }  // edge clamping or a cancelled stroke invalidates the tracked position
+        try Task.checkCancellation()
+        try await swipe(0.5, 0.995, 0.5, 0.45, hold: false)
+    }
+
     func goBack() async throws {
         try await swipe(0.005, 0.45, 0.6, 0.45, hold: false)
         pos = nil

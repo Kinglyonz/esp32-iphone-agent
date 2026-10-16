@@ -18,6 +18,11 @@ enum Analytics {
     private static var sent: Set<String> = []  // captureOnce events this launch
     private static var timer: Timer?
     private static var sending = false
+    private static var flushRequested = false
+    private static var delivery: Task<Void, Never>?
+    private static var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private static var deliveryRevision = 0
+    private static var consentRevision = 0
     private static let stamp = ISO8601DateFormatter()
 
     /// This build can send stats (the switch is shown only then).
@@ -26,9 +31,11 @@ enum Analytics {
 
     /// Call once at launch: flush every 30 s and when the app leaves the screen.
     static func start() {
-        guard available else { return }
+        guard available, timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in Task { @MainActor in flush() } }
         NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil,
+                                               queue: .main) { _ in Task { @MainActor in flush() } }
+        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil,
                                                queue: .main) { _ in Task { @MainActor in flush() } }
         capture("app_opened")
     }
@@ -38,7 +45,9 @@ enum Analytics {
         if on {
             capture("usage_stats_enabled")
         } else {
+            consentRevision += 1
             queue = []
+            delivery?.cancel()
             UserDefaults.standard.removeObject(forKey: idKey)
         }
     }
@@ -60,19 +69,48 @@ enum Analytics {
     }
 
     static func flush() {
-        guard enabled, !sending, !queue.isEmpty, let host else { return }
+        guard enabled, !queue.isEmpty, let host else { return }
+        guard !sending else { flushRequested = true; return }
         let batch = queue
         queue = []
         sending = true
+        flushRequested = false
+        deliveryRevision += 1
+        let revision = deliveryRevision
+        let consent = consentRevision
+        // A run normally finishes off screen. Allow this bounded request to finish before suspension;
+        // expired or failed deliveries stay queued for the next foreground/timer flush.
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "usage stats") {
+            Task { @MainActor in
+                guard revision == deliveryRevision else { return }
+                delivery?.cancel()
+                endBackgroundDelivery()
+            }
+        }
         var request = URLRequest(url: host.appendingPathComponent("batch/"))
+        request.timeoutInterval = 15
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: ["api_key": key, "batch": batch])
-        Task {
-            let ok = ((try? await URLSession.shared.data(for: request))?.1 as? HTTPURLResponse)?.statusCode == 200
+        delivery = Task {
+            let status = ((try? await URLSession.shared.data(for: request))?.1 as? HTTPURLResponse)?.statusCode
+            let ok = status == 200
             sending = false
-            if !ok && enabled { queue = batch + queue }  // retried with the next flush
+            delivery = nil
+            endBackgroundDelivery()
+            if !ok && enabled && consent == consentRevision {
+                queue = Array((batch + queue).suffix(200))
+            }
+            DebugLog.write("analytics delivery: \(batch.count) events, \(ok ? "accepted" : "deferred")")
+            // A terminal event can arrive while the preceding batch is outstanding.
+            if ok && flushRequested { flush() }
         }
+    }
+
+    private static func endBackgroundDelivery() {
+        guard backgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTask)
+        backgroundTask = .invalid
     }
 
     /// Random per-install id, not tied to the device or a person.

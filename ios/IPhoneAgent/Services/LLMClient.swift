@@ -54,6 +54,15 @@ struct LLMError: LocalizedError {
     private let session: URLSession
     private var retryAfter: Double?  // seconds, from the last response's Retry-After header
 
+    /// Local diagnostics identify the destination without credentials, path or query parameters.
+    private var endpointOrigin: String {
+        var origin = URLComponents()
+        origin.scheme = baseURL.scheme
+        origin.host = baseURL.host
+        origin.port = baseURL.port
+        return origin.string ?? "<invalid>"
+    }
+
     init(baseURL: String, model: String, apiKey: String = "", extra: [String: Any] = [:],
          tokenParam: String = "auto", session: URLSession? = nil) {
         var trimmed = baseURL
@@ -106,7 +115,7 @@ struct LLMError: LocalizedError {
 
         let started = now()
         let kb = images.reduce(0) { $0 + $1.count } / 1024
-        DebugLog.write("llm → \(model): \(images.count) image(s) \(kb) KB, \(text.count) chars")
+        DebugLog.write("llm → \(model) @ \(endpointOrigin): \(images.count) image(s) \(kb) KB, \(text.count) chars")
         var status = 0, result: ChatResult?, errorText = ""
         do {
             (status, result, errorText) = try await post(body, maxTokens: maxTokens, started: started)

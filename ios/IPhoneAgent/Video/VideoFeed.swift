@@ -33,7 +33,7 @@ extension ScreenSource {
     func settled(quiet: Double = 0.5, least: Double = 0.3, most: Double = 4) async {
         let started = now()
         try? await Task.sleep(nanoseconds: UInt64(least * 1e9))
-        while now() - updated < quiet + lag && now() - started < most {
+        while !Task.isCancelled && now() - updated < quiet + lag && now() - started < most {
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
     }
@@ -45,10 +45,10 @@ extension ScreenSource {
     func fresh(since: Double, timeout: Double = 0.8) async -> Data? {
         let deadline = now() + timeout
         while (capturedAt > 0 ? capturedAt : updated) <= since {
-            if now() > deadline { return nil }
+            if Task.isCancelled || now() > deadline { return nil }
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
-        return frame
+        return Task.isCancelled ? nil : frame
     }
 }
 
@@ -68,9 +68,12 @@ extension ScreenSource {
     weak var device: HIDDevice?
 
     private var assembler = VideoAssembler()
-    private let decoder = H264Decoder()
+    private var generation = 0
+    private let decoder: H264Decoder
+    @MainActor private final class DecodeDrain { var completed = false }
 
-    init() {
+    init(decoder: H264Decoder = H264Decoder()) {
+        self.decoder = decoder
         decoder.onFrame = { [weak self] f in DispatchQueue.main.async { self?.publish(f) } }
         decoder.onError = { [weak self] msg in
             DispatchQueue.main.async {
@@ -93,7 +96,8 @@ extension ScreenSource {
         let dropsBefore = assembler.drops
         let unit = assembler.add(chunk)
         if assembler.drops > dropsBefore { metrics?.videoDrops(assembler.drops - dropsBefore); broken = true }
-        guard let unit else { return }
+        guard var unit else { return }
+        unit.generation = generation
         if !unit.snap { boardClock(ms: Int(unit.boardMs)) }  // snap units are resent late: their ages say nothing
         if unit.idr { metrics?.idrSeen() }
         decoder.queue.async { [decoder] in decoder.decode(unit) }
@@ -111,10 +115,11 @@ extension ScreenSource {
     /// Show a still frame (demo data).
     func show(_ jpeg: Data, width: Int, height: Int) {
         publish(H264Decoder.Frame(jpeg: jpeg, width: width, height: height, decodeMs: 4.2,
-                                  unit: AccessUnit(data: Data(), idr: false, config: false, snap: false, boardMs: 0)))
+                                  unit: AccessUnit(data: Data(), idr: false, config: false, snap: false, boardMs: 0, generation: generation)))
     }
 
     private func publish(_ f: H264Decoder.Frame) {
+        guard f.unit.generation == generation else { return }
         frame = f.jpeg
         updated = now()
         capturedAt = clockOffset.map { Double(f.unit.boardMs) / 1000 + $0 } ?? updated
@@ -141,8 +146,9 @@ extension ScreenSource {
     @discardableResult
     func currentFrame(maxAge: Double = 1, wait: Double = 3) async throws -> String {
         if streamOn && mirroring {
-            if frame != nil && now() - updated < maxAge { return "live" }
-            if await fresh(since: now() - maxAge, timeout: wait) != nil { return "live (waited)" }
+            try Task.checkCancellation()
+            if !broken && frame != nil && now() - updated < maxAge { return "live" }
+            if await fresh(since: now() - maxAge, timeout: wait) != nil && !broken { return "live (waited)" }
         }
         do {
             try await snap()
@@ -155,16 +161,28 @@ extension ScreenSource {
 
     /// Ask the board for the current GOP and wait until it is decoded. Returns the latency in ms.
     @discardableResult
-    func snap(timeout: Double? = nil) async throws -> Double {
-        guard let device else { throw DeviceError(message: "board not connected") }
-        let started = now()
+    func snap(timeout: Double? = nil, decodeWait: Double = 1) async throws -> Double {
+        try Task.checkCancellation()
+        guard let device, device.connected else { throw DeviceError(message: "board not connected") }
+        let started = now(), previousFrame = updated
         if let channel = device as? CommandChannel {
             try await channel.send("snap", timeout: timeout ?? snapTimeout)
         } else {
             try await device.send("snap")
         }
-        await withCheckedContinuation { c in decoder.queue.async { c.resume() } }  // the GOP is decoded
-        try? await Task.sleep(nanoseconds: 30_000_000)  // let the last frame reach the main queue
+        try Task.checkCancellation()
+        let drain = DecodeDrain()
+        let deadline = now() + max(0, decodeWait)
+        decoder.queue.async { DispatchQueue.main.async { drain.completed = true } }
+        while !drain.completed || frame == nil || updated <= previousFrame || broken {
+            try Task.checkCancellation()
+            guard now() < deadline else {
+                broken = true
+                throw DeviceError(message: String(localized: "The board answered, but no new screen image arrived. Keep Screen Mirroring connected and try again."))
+            }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        try Task.checkCancellation()
         let ms = (now() - started) * 1000
         metrics?.snapLatency(ms)
         return ms
@@ -205,12 +223,16 @@ extension ScreenSource {
     private func newer(than t: Double, timeout: Double) async -> Bool {
         let deadline = now() + timeout
         while capturedAt < t {
-            if now() > deadline { return false }
+            if Task.isCancelled || now() > deadline { return false }
             try? await Task.sleep(nanoseconds: 50_000_000)
         }
         return true
     }
 
     /// The link dropped: the board forgets `stream on`.
-    func linkLost() { streamOn = false }
+    func linkLost() {
+        streamOn = false
+        broken = true
+        generation += 1  // a late decode from the old link must not make its stale image healthy again
+    }
 }

@@ -67,8 +67,15 @@
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>ESP32 Agent talks to its USB board over Bluetooth to see the screen and move the pointer.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ESP32 Agent connects to the model server you configure on your local network.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIBackgroundModes</key>

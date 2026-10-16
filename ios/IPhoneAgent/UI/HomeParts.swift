@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// The character takes off before a run: a hop, then up and away (a fade under Reduce Motion).
+/// The character takes off, but instructions and cancellation stay until the app is actually backgrounded.
 struct DepartureOverlay: View {
+    let message: String
+    let cancel: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var gone = false
 
@@ -11,17 +13,25 @@ struct DepartureOverlay: View {
             VStack(spacing: Space.l) {
                 AgentFace(mood: .acting)
                     .frame(width: 140, height: 157)
-                    .offset(y: gone && !reduceMotion ? -520 : 0)
-                    .scaleEffect(gone && !reduceMotion ? 0.6 : 1)
+                    .offset(y: gone && !reduceMotion ? -120 : 0)
                     .opacity(gone ? 0 : 1)
-                Text("See you later!").font(.title2.bold()).opacity(gone ? 0 : 1)
+                    .accessibilityHidden(true)
+                ProgressView().accessibilityHidden(true)
+                Text(verbatim: message)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                Button("Cancel", role: .cancel, action: cancel)
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .frame(minHeight: 44)
             }
+            .padding(Space.xl)
+            .frame(maxWidth: .infinity)
         }
         .transition(.opacity)
         .onAppear {
-            withAnimation(.easeIn(duration: 0.4).delay(0.35)) { gone = true }  // 0.75 s, inside the 0.8 s wait
+            withAnimation(.easeIn(duration: 0.4).delay(0.35)) { gone = true }
         }
-        .accessibilityLabel(Text("Starting"))
     }
 }
 
@@ -76,14 +86,20 @@ struct RecoveryPanel: View {
                 Text(timerInterval: app.recoverySince...Date.distantFuture, countsDown: false)
                     .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
             }
-            Text(verbatim: stage.line).font(.subheadline).foregroundStyle(.secondary)
+            if stage.line != stage.status.full {
+                Text(verbatim: stage.line).font(.subheadline).foregroundStyle(.secondary)
+            }
             HStack {
                 Spacer()
                 Button(role: .destructive) { Task { await app.stopAgent() } } label: { Label("Stop", systemImage: "stop.fill") }
                     .buttonStyle(.bordered)
             }
         } header: {
-            Text("Connection lost, run paused")
+            if stage.part == .frames {
+                Text("Waiting for a screen image")
+            } else {
+                Text("Connection lost, run paused")
+            }
         }
     }
 }
