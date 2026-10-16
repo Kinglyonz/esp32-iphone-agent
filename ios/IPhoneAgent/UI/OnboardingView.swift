@@ -140,10 +140,7 @@ struct OnboardingView: View {
     /// The mouse and mirroring are up: calibration can run.
     private var actReady: Bool { MockMode.on || (calibrator.boardReady && calibrator.mirroring) }
 
-    /// On the board's hotspot: joined in-app, confirmed by hand, or the board reports a client.
-    private var onHotspot: Bool {
-        app.otherWiFi == nil && (onWiFi || app.join == .joined || app.hotspotSSID != nil || (board.connected && (board.status?.sta ?? 0) > 0))
-    }
+    private var onHotspot: Bool { app.onBoardHotspot(manual: onWiFi) }
 
     private var primaryTitle: LocalizedStringKey {
         switch page {

@@ -5627,6 +5627,26 @@
           }
         }
       }
+    },
+    "Wi-Fi looks off. Turn on Wi-Fi in Control Center, then tap Try Again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无线局域网好像关着。请在控制中心打开无线局域网，然后点「重试」。"
+          }
+        }
+      }
+    },
+    "The iPhone left the board's Wi-Fi. Tap Try Again to join it again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台 iPhone 已离开开发板的无线局域网。点「重试」重新加入。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -117,10 +117,7 @@ struct SeePage: View {
     @Environment(\.scenePhase) private var scenePhase
 
     private var streaming: Bool { board.connected && board.status?.ap == "streaming" }
-    // The board counts hotspot clients, so joining by hand is detected without the hotspot entitlement.
-    private var joined: Bool {
-        app.otherWiFi == nil && (onWiFi || app.join == .joined || app.hotspotSSID != nil || streaming || (board.connected && (board.status?.sta ?? 0) > 0))
-    }
+    private var joined: Bool { app.onBoardHotspot(manual: onWiFi) }
     private var failure: String? { if case .failed(let why) = app.join { return why } else { return nil } }
 
     var body: some View {

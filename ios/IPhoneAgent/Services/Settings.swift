@@ -1,4 +1,5 @@
 import Foundation
+import Network
 import NetworkExtension
 import Security
 import UIKit
@@ -230,6 +231,19 @@ enum Hotspot {
         }
         next()
     }
+
+    /// False while the phone has no Wi-Fi link at all: Wi-Fi is off, or on but on no network. iOS tells apps
+    /// nothing about the switch itself, and with Wi-Fi off apply() still "succeeds" without joining.
+    nonisolated(unsafe) private(set) static var wifiLink = true
+    private static let monitor: NWPathMonitor = {
+        let m = NWPathMonitor()
+        m.pathUpdateHandler = { path in wifiLink = path.availableInterfaces.contains { $0.type == .wifi } }
+        m.start(queue: DispatchQueue(label: "wifi-path"))
+        return m
+    }()
+
+    /// Start watching the Wi-Fi link (call early: the first path arrives a moment later).
+    static func watchWiFi() { _ = monitor }
 
     /// The SSID the phone is on, if it is one of ours (needs the hotspot entitlement).
     static func currentSSID() async -> String? {
