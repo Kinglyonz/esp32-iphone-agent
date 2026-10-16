@@ -9,6 +9,7 @@ enum ModelRequestFailure {
     static func kind(_ error: Error) -> String {
         if isTimeout(error) { return "timeout" }
         if let e = error as? LLMError {
+            if let kind = e.kind { return kind }
             switch e.status {
             case 0: return "provider"
             case 429: return "http_429"

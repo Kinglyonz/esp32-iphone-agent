@@ -36,6 +36,7 @@ platform :ios do
       IA_WIDGET_ENTITLEMENTS: "AgentActivity/AgentActivity.entitlements",
       IA_PRESET_BASE_URL: "", IA_PRESET_MODEL: "", IA_PRESET_KEY: "",
       IA_POSTHOG_KEY: ENV["IA_POSTHOG_KEY"].to_s,
+      IA_STORE_BUILD: "YES",
       CURRENT_PROJECT_VERSION: build,
     }.map { |k, v| "#{k}='#{v}'" }.join(" ")
 

@@ -31,6 +31,11 @@ extension AppModel {
             say(String(localized: "Set up the model in Settings first."))
             return
         }
+        guard AIConsent.granted(settings.baseURL) else {
+            Analytics.capture("run_blocked", ["reason": "ai_consent"])
+            aiConsentRun = task
+            return
+        }
         guard await calibrator.ensureCalibrated() else {
             Analytics.capture("run_blocked", ["reason": "not_calibrated"])
             say(String(localized: "The pointer isn't calibrated yet."))
@@ -250,13 +255,20 @@ extension AppModel {
 
     // MARK: - needs your help
 
-    /// The agent is stuck: pause, tell the user (Live Activity + notification) and wait for their choice.
-    func needsHelp(_ reason: String) async -> AgentLoop.HelpChoice {
+    /// The agent is stuck, or asks before a risky step: pause, tell the user (Live Activity + a notification
+    /// whose buttons answer it) and wait for their choice.
+    func needsHelp(_ reason: String, confirm: Bool = false) async -> AgentLoop.HelpChoice {
         help = reason.isEmpty ? String(localized: "I'm stuck on this step.") : reason
-        runMood = .failure
-        let line = String(localized: "Needs your help: \(help ?? "")")
-        live.update(mood: .failure, step: moveCount, line: line, phase: .help, status: .help)
-        notifier.post(.help, title: String(localized: "Needs your help"), body: help ?? "", run: runID)
+        runMood = confirm ? .listening : .failure
+        let line = confirm ? String(localized: "OK to do this? \(help ?? "")") : String(localized: "Needs your help: \(help ?? "")")
+        live.update(mood: runMood ?? .failure, step: moveCount, line: line, phase: .help, status: confirm ? .confirm : .help)
+        if confirm {
+            notifier.post(.confirm, title: String(localized: "OK to go on?"),
+                          body: String(localized: "\(help ?? "") Press and hold for Continue, Skip or Stop."), run: runID)
+        } else {
+            notifier.post(.help, title: String(localized: "Needs your help"),
+                          body: String(localized: "\(help ?? "") Press and hold for Take Over, Skip or Stop."), run: runID)
+        }
         return await withCheckedContinuation { helpWait = $0 }
     }
 

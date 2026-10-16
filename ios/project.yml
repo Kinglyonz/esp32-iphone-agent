@@ -58,6 +58,7 @@ targets:
         # Anonymous usage stats (opt-in); empty key = the build sends nothing
         IAPostHogKey: $(IA_POSTHOG_KEY)
         IAPostHogHost: $(IA_POSTHOG_HOST)
+        IAStoreBuild: $(IA_STORE_BUILD)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(IA_BUNDLE_ID)

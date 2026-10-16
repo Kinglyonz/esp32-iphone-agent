@@ -7,6 +7,7 @@ struct SettingsView: View {
     @ObservedObject var settings: Settings
     @ObservedObject var board: BoardLink
     @AppStorage(MockMode.key) private var demoData = false
+    @AppStorage(AgentLoop.askBeforeRiskyKey) private var askBeforeRisky = true
 
     var body: some View {
         NavigationStack {
@@ -40,10 +41,13 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.primary)
+                    Toggle(isOn: $askBeforeRisky) {
+                        SettingsLabel(title: "Ask before risky steps", symbol: "checkmark.shield.fill", color: .orange)
+                    }
                 } header: {
                     Text("Runs")
                 } footer: {
-                    Text("Every run keeps a low-frame-rate video of the mirrored screen, next to the step screenshots, for the review.")
+                    Text("With Ask before risky steps on, the agent stops and asks you in a notification before paying, sending a message, deleting or changing account settings. Every run keeps a low-frame-rate video of the mirrored screen for the review.")
                 }
                 Section {
                     NavigationLink { DiagnosticsView(app: app, metrics: app.metrics, board: board, feed: app.feed) } label: {

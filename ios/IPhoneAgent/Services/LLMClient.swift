@@ -34,6 +34,7 @@ struct ChatResult {
 struct LLMError: LocalizedError {
     let message: String
     var status = 0  // the HTTP status, when the server answered with an error
+    var kind: String?  // for usage stats, e.g. "rate_limit_day"
     var errorDescription: String? { message }
 }
 
@@ -51,6 +52,7 @@ struct LLMError: LocalizedError {
     private(set) var tokenParam: String
     private var auto: Bool
     private let session: URLSession
+    private var retryAfter: Double?  // seconds, from the last response's Retry-After header
 
     init(baseURL: String, model: String, apiKey: String = "", extra: [String: Any] = [:],
          tokenParam: String = "auto", session: URLSession? = nil) {
@@ -112,9 +114,14 @@ struct LLMError: LocalizedError {
                 (tokenParam, auto) = ("max_completion_tokens", false)
                 (status, result, errorText) = try await post(body, maxTokens: maxTokens, started: started)
             }
-            if [429, 502, 503, 504].contains(status) {  // rate limit or a busy upstream: once more
-                DebugLog.write("llm: HTTP \(status), retrying")
-                try await Task.sleep(for: .seconds(status == 429 ? 5 : 3))
+            // A busy upstream: once more. A per-minute rate limit: wait as told (Retry-After, at most 20 s), up
+            // to twice. A daily quota (OpenRouter free models): retrying can't help, so say so plainly.
+            for attempt in 0..<2 where [429, 502, 503, 504].contains(status) {
+                if status == 429 && Self.dailyLimit(errorText) { break }
+                if status != 429 && attempt > 0 { break }
+                let wait = status == 429 ? min(retryAfter ?? 5, 20) : 3
+                DebugLog.write(String(format: "llm: HTTP %d, retrying in %.0f s", status, wait))
+                try await Task.sleep(for: .seconds(wait))
                 (status, result, errorText) = try await post(body, maxTokens: maxTokens, started: started)
             }
         } catch {
@@ -123,6 +130,7 @@ struct LLMError: LocalizedError {
         }
         guard (200..<300).contains(status), var result else {
             DebugLog.write(String(format: "llm ✗ HTTP %d after %.1f s: %@", status, now() - started, String(errorText.prefix(200))))
+            if status == 429 { throw Self.rateLimitError(errorText, openRouter: baseURL.host?.hasSuffix("openrouter.ai") == true) }
             throw LLMError(message: "LLM HTTP \(status): \(errorText.prefix(300))", status: status)
         }
         result.total = now() - started
@@ -130,6 +138,25 @@ struct LLMError: LocalizedError {
                               result.firstToken.map { String(format: "%.1f s", $0) } ?? "-", result.total, result.text.count)
                        + " " + PyJSON.dumps(.obj(result.diagnostics)))
         return result
+    }
+
+    /// OpenRouter's daily free-model quota ("free-models-per-day"), as opposed to the per-minute limit.
+    static func dailyLimit(_ errorText: String) -> Bool {
+        let t = errorText.lowercased()
+        return t.contains("per-day") || t.contains("per day") || t.contains("daily")
+    }
+
+    static func rateLimitError(_ errorText: String, openRouter: Bool) -> LLMError {
+        if dailyLimit(errorText) {
+            return LLMError(message: openRouter
+                ? String(localized: "Today's OpenRouter free-model requests are used up (50 a day, 1,000 after you buy $10 of credits). Try again tomorrow or choose a paid model.")
+                : String(localized: "The AI service's daily limit is used up. Try again tomorrow or choose another model."),
+                status: 429, kind: "rate_limit_day")
+        }
+        return LLMError(message: openRouter
+            ? String(localized: "OpenRouter's free models allow about 20 requests a minute and the limit was hit. Wait a minute and try again, or choose a paid model.")
+            : String(localized: "The AI service is rate-limiting requests. Wait a minute and try again."),
+            status: 429, kind: "rate_limit_minute")
     }
 
     /// The first model id from GET {base}/models.
@@ -169,6 +196,7 @@ struct LLMError: LocalizedError {
         var trimmed = baseURL
         while trimmed.hasSuffix("/") { trimmed.removeLast() }
         guard let base = URL(string: trimmed) else { throw LLMError(message: "invalid base URL") }
+        try AIConsent.check(trimmed)
         var request = URLRequest(url: base.appendingPathComponent("models"), timeoutInterval: 20)
         if !apiKey.isEmpty { request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -182,6 +210,7 @@ struct LLMError: LocalizedError {
 
     private func post(_ body: [String: Any], maxTokens: Int, started: Double) async throws
         -> (Int, ChatResult?, String) {
+        try AIConsent.check(baseURL.absoluteString)
         var body = body
         body[tokenParam] = maxTokens
         var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
@@ -191,6 +220,7 @@ struct LLMError: LocalizedError {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (bytes, response) = try await session.bytes(for: request)
+        retryAfter = ((response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Retry-After")).flatMap(Double.init)
         let responseSeconds = now() - started
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         let type = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type") ?? ""

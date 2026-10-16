@@ -75,6 +75,7 @@ struct PrivacySettingsView: View {
 
     var body: some View {
         List {
+            AIConsentSection(settings: app.settings)
             PrivacyLists()
             Section { Toggle("Keep run data for sharing", isOn: $keep) }
             if keep { export }

@@ -46,6 +46,10 @@ struct IslandStatus: Equatable {
         Self(short: String(localized: "Need help"), full: String(localized: "Need your help"), look: .zero, minimal: String(localized: "Help"))
     }
 
+    static var confirm: Self {
+        Self(short: String(localized: "OK to go on?"), full: String(localized: "Waiting for your OK"), look: .zero, minimal: String(localized: "OK?"))
+    }
+
     static var yourTurn: Self {
         Self(short: String(localized: "Your turn"), full: String(localized: "Your turn"), look: CGPoint(x: 0, y: 0.6), minimal: String(localized: "You"))
     }

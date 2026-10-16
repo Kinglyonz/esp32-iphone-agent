@@ -143,7 +143,7 @@ import UIKit
 
     /// Fetch the model list; only a result for the current configuration is accepted.
     func loadModels() async {
-        guard isConfigured else { return }
+        guard isConfigured, AIConsent.granted(baseURL) else { return }  // asks first in store builds
         modelsRequest += 1
         let request = modelsRequest
         loadingModels = true
@@ -170,6 +170,12 @@ import UIKit
         }
     }
 
+    /// The AI-service agreement changed (store builds): refresh what depends on it.
+    func consentChanged() {
+        configurationRevision += 1
+        Task { await loadModels() }
+    }
+
     var extra: [String: Any] {
         (try? JSONSerialization.jsonObject(with: Data(extraBody.utf8))) as? [String: Any] ?? [:]
     }
@@ -177,8 +183,14 @@ import UIKit
     /// role "planner" or "actor": its own model if set, else the shared one.
     func client(_ role: String) async throws -> LLMClient {
         let own = role == "planner" ? plannerModel : actorModel
-        return LLMClient(baseURL: baseURL, model: own.isEmpty ? try await resolvedModel() : own, apiKey: apiKey,
-                         extra: extra, tokenParam: tokenParam)
+        let model = own.isEmpty ? try await resolvedModel() : own
+        var extra = extra
+        if provider == .openRouter, model.hasSuffix(":free"), extra["models"] == nil {
+            // When that free model's providers are rate-limited or down, OpenRouter tries two other free vision models.
+            let others = freeModels.filter { $0 != model && $0.hasSuffix(":free") }.sorted().prefix(2)
+            if !others.isEmpty { extra["models"] = [model] + others }
+        }
+        return LLMClient(baseURL: baseURL, model: model, apiKey: apiKey, extra: extra, tokenParam: tokenParam)
     }
 }
 

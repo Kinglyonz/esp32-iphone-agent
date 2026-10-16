@@ -21,6 +21,30 @@ import XCTest
                        ["plan", "fail", "help", "takeover", "replan (stuck)", "done"])
     }
 
+    func testRiskyStepWaitsForTheUsersOK() async {
+        let model = SystemRecorder { n in
+            switch n {
+            case 1: return "1. send it"
+            case 2: return "THINK: about to send\nDO: confirm send the message to Anna"
+            default: return "THINK: sent\nDO: done sent"
+            }
+        }
+        let agent = AgentLoop(phone: FakeGestures(), screen: FakeScreen(), actor: model, planner: model, trace: nil)
+        var asked: [String] = []
+        agent.onConfirm = { reason in asked.append(reason); return .resume }
+        await agent.run()
+        XCTAssertEqual(asked, ["send the message to Anna"])
+        XCTAssertEqual(agent.steps.map { $0["action"]?.str }, ["plan", "confirm", "confirmed", "done"])
+    }
+
+    func testStopFromAConfirmEndsTheRun() async {
+        let model = SystemRecorder { n in n == 1 ? "1. pay" : "THINK: pay\nDO: confirm pay 9.99" }
+        let agent = AgentLoop(phone: FakeGestures(), screen: FakeScreen(), actor: model, planner: model, trace: nil)
+        agent.onConfirm = { _ in .stop }
+        await agent.run()
+        XCTAssertEqual(agent.steps.last?["action"], .str("stopped"))
+    }
+
     func testStopFromHelpEndsTheRun() async {
         let model = SystemRecorder { n in n == 1 ? "1. open it" : "THINK: stuck\nDO: fail no button" }
         let agent = AgentLoop(phone: FakeGestures(), screen: FakeScreen(), actor: model, planner: model, trace: nil)

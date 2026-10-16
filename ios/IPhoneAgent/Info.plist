@@ -61,6 +61,8 @@
 	<string>$(IA_PRESET_KEY)</string>
 	<key>IAPresetModel</key>
 	<string>$(IA_PRESET_MODEL)</string>
+	<key>IAStoreBuild</key>
+	<string>$(IA_STORE_BUILD)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>

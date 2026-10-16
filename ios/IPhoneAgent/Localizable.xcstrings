@@ -1426,16 +1426,6 @@
         }
       }
     },
-    "Draw a smiley" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "画个笑脸"
-          }
-        }
-      }
-    },
     "Drawing…" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1502,16 +1492,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每次运行都会一步步记录在这里，方便你回放我做了什么。"
-          }
-        }
-      }
-    },
-    "Every run keeps a low-frame-rate video of the mirrored screen, next to the step screenshots, for the review." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每次运行都会保存一段低帧率的镜像屏幕视频，与步骤截图一起用于复盘。"
           }
         }
       }
@@ -1894,16 +1874,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一插上我就会自动连接。"
-          }
-        }
-      }
-    },
-    "I'll tell you when a run is done or needs your help, since you won't see this app while I work." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我工作时你看不到这个 App，所以运行完成或需要你帮忙时我会通知你。"
           }
         }
       }
@@ -2798,32 +2768,12 @@
         }
       }
     },
-    "Open Settings and go to Wi-Fi" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开设置，进入 Wi-Fi"
-          }
-        }
-      }
-    },
     "Open Settings › Wi-Fi" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开 设置 › 无线局域网"
-          }
-        }
-      }
-    },
-    "Open Whiteboard and draw a smiley face" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开白板画一个笑脸"
           }
         }
       }
@@ -4732,16 +4682,6 @@
         }
       }
     },
-    "Wi-Fi settings" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wi-Fi 设置"
-          }
-        }
-      }
-    },
     "Working on it. Watch the Dynamic Island, or stop me anytime." : {
       "localizations" : {
         "zh-Hans" : {
@@ -5638,22 +5578,412 @@
         }
       }
     },
-    "Free models are rate-limited (about 20 requests a minute, 50 a day) and can be slow. Automatic picks a free vision model for each request." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "免费模型有频率限制（约每分钟 20 次、每天 50 次），速度也可能较慢。“自动”会为每次请求挑选一个免费的视觉模型。"
-          }
-        }
-      }
-    },
     "Billed to your OpenRouter credits. Vision models only." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "从你的 OpenRouter 余额扣费。仅列出能看图的模型。"
+          }
+        }
+      }
+    },
+    "Asked you first" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先问了你"
+          }
+        }
+      }
+    },
+    "You said yes" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你同意了"
+          }
+        }
+      }
+    },
+    "OK to go on?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可以继续吗？"
+          }
+        }
+      }
+    },
+    "Waiting for your OK" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等你确认"
+          }
+        }
+      }
+    },
+    "OK?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认？"
+          }
+        }
+      }
+    },
+    "OK to do this? %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可以这样做吗？%@"
+          }
+        }
+      }
+    },
+    "%@ Press and hold for Continue, Skip or Stop." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 长按通知可选择继续、跳过或停止。"
+          }
+        }
+      }
+    },
+    "%@ Press and hold for Take Over, Skip or Stop." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 长按通知可选择接手、跳过或停止。"
+          }
+        }
+      }
+    },
+    "I'll tell you when a run is done or needs your help, since you won't see this app while I work. Before paying, sending a message or deleting anything I stop and ask you in a notification: press and hold it to answer." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任务完成或需要你帮忙时我会通知你，因为我工作时你看不到这个 App。付款、发消息或删除任何东西之前，我会停下来用通知问你：长按通知即可回答。"
+          }
+        }
+      }
+    },
+    "Ask before risky steps" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "危险操作前先问我"
+          }
+        }
+      }
+    },
+    "With Ask before risky steps on, the agent stops and asks you in a notification before paying, sending a message, deleting or changing account settings. Every run keeps a low-frame-rate video of the mirrored screen for the review." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开“危险操作前先问我”后，Agent 在付款、发消息、删除或修改账户设置之前会停下来，用通知问你。每次运行都会保存一段低帧率的镜像屏幕视频，供回看。"
+          }
+        }
+      }
+    },
+    "Allow sending screenshots and your task to %@ first (Settings › Model)." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先允许把截图和任务发送到 %@（设置 › 模型）。"
+          }
+        }
+      }
+    },
+    "To work, ESP32 Agent sends data to the AI service you chose. Nothing is sent until you agree." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ESP32 Agent 需要把数据发送给你选择的 AI 服务才能工作。你同意之前不会发送任何内容。"
+          }
+        }
+      }
+    },
+    "Sent to" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送到"
+          }
+        }
+      }
+    },
+    "What is sent" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送的内容"
+          }
+        }
+      }
+    },
+    "When" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "何时发送"
+          }
+        }
+      }
+    },
+    "A screenshot of your mirrored screen at every step of a run, so the AI can see it" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行时每一步的镜像屏幕截图，让 AI 能看到屏幕"
+          }
+        }
+      }
+    },
+    "The task you type and the steps so far" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你输入的任务和已经执行的步骤"
+          }
+        }
+      }
+    },
+    "Your API key, to sign in to that service" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的 API 密钥，用于登录该服务"
+          }
+        }
+      }
+    },
+    "Only when you start a run, test the connection, check the calibration or save an intent" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只在你开始运行、测试连接、检查校准或保存意图时"
+          }
+        }
+      }
+    },
+    "Screenshots may show anything on your screen. %@ handles them under its own privacy policy and terms; the ESP32 Agent developer never receives them. You can withdraw this anytime in Settings › Privacy." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "截图可能包含屏幕上的任何内容。%@ 按其自己的隐私政策和条款处理这些数据；ESP32 Agent 的开发者不会收到。你可以随时在 设置 › 隐私 中撤回。"
+          }
+        }
+      }
+    },
+    "I agree to send this data to %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我同意把这些数据发送到 %@"
+          }
+        }
+      }
+    },
+    "Send to AI Service?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送给 AI 服务？"
+          }
+        }
+      }
+    },
+    "Agree" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同意"
+          }
+        }
+      }
+    },
+    "Allowed to send to %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许发送到 %@"
+          }
+        }
+      }
+    },
+    "Allow sending to %@…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许发送到 %@…"
+          }
+        }
+      }
+    },
+    "Allowed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许"
+          }
+        }
+      }
+    },
+    "Withdraw" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤回"
+          }
+        }
+      }
+    },
+    "No AI service allowed. Runs ask first." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未允许任何 AI 服务。运行前会先询问。"
+          }
+        }
+      }
+    },
+    "AI service" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 服务"
+          }
+        }
+      }
+    },
+    "Screenshots and your task go only to the AI service you allowed, and only during runs, tests and intent saving." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "截图和任务只会发送给你允许的 AI 服务，并且只在运行、测试和保存意图时发送。"
+          }
+        }
+      }
+    },
+    "Tap \"Allow sending to %@…\" above first." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先点上方的“允许发送到 %@…”。"
+          }
+        }
+      }
+    },
+    "Today's OpenRouter free-model requests are used up (50 a day, 1,000 after you buy $10 of credits). Try again tomorrow or choose a paid model." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天的 OpenRouter 免费模型请求已用完（每天 50 次，充值 10 美元后每天 1000 次）。请明天再试，或选择付费模型。"
+          }
+        }
+      }
+    },
+    "The AI service's daily limit is used up. Try again tomorrow or choose another model." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 服务今天的额度已用完。请明天再试，或换一个模型。"
+          }
+        }
+      }
+    },
+    "OpenRouter's free models allow about 20 requests a minute and the limit was hit. Wait a minute and try again, or choose a paid model." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OpenRouter 免费模型每分钟约 20 次请求，已达到上限。请等一分钟再试，或选择付费模型。"
+          }
+        }
+      }
+    },
+    "The AI service is rate-limiting requests. Wait a minute and try again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 服务正在限制请求频率。请等一分钟再试。"
+          }
+        }
+      }
+    },
+    "Free models are rate-limited (about 20 requests a minute, 50 a day) and often busy. A run takes 20–40 requests, so runs can be slow or stop partway. A paid model works better." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免费模型有频率限制（约每分钟 20 次、每天 50 次），而且经常繁忙。一次运行需要 20–40 次请求，所以可能很慢或中途停下。付费模型效果更好。"
+          }
+        }
+      }
+    },
+    "Free models are rate-limited (about 20 requests a minute, 50 a day) and often busy; a run takes 20–40 requests, so runs can be slow or stop partway. Automatic picks a free vision model for each request." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "免费模型有频率限制（约每分钟 20 次、每天 50 次），而且经常繁忙；一次运行需要 20–40 次请求，所以可能很慢或中途停下。“自动”会为每次请求挑选一个免费的视觉模型。"
+          }
+        }
+      }
+    },
+    "7 AM daily alarm" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每天 7 点闹钟"
+          }
+        }
+      }
+    },
+    "Set an alarm for 7:00 AM that repeats every day, then save it" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置一个早上 7:00 每天重复的闹钟，然后保存"
           }
         }
       }

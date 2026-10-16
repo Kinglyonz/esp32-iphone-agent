@@ -78,7 +78,7 @@ struct HomeView: View {
                 Button("Continue") { Task { await app.notifier.requestPermission(); go() } }
                 Button("Not Now", role: .cancel) { UserDefaults.standard.set(true, forKey: Notifier.askedKey); go() }
             } message: {
-                Text("I'll tell you when a run is done or needs your help, since you won't see this app while I work.")
+                Text("I'll tell you when a run is done or needs your help, since you won't see this app while I work. Before paying, sending a message or deleting anything I stop and ask you in a notification: press and hold it to answer.")
             }
             .overlay { if app.departing { DepartureOverlay() } }
             .overlay(alignment: .top) {

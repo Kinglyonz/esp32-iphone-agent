@@ -67,6 +67,11 @@ extension Pointer: Gestures {}
     var onHelp: ((String) async -> HelpChoice)?
     private var helpAsked = 0
     enum HelpChoice { case resume, skip, stop }
+    /// Before a risky step (paying, sending, deleting, account settings) the actor asks; nil or the setting
+    /// off = it goes on by itself. Continue = do it, Skip = don't, Stop = end the run.
+    var onConfirm: ((String) async -> HelpChoice)?
+    static let askBeforeRiskyKey = "askBeforeRisky"
+    static var askBeforeRisky: Bool { UserDefaults.standard.object(forKey: askBeforeRiskyKey) as? Bool ?? true }
 
     init(phone: Gestures?, screen: ScreenSource?, actor: ChatModel?, planner: ChatModel?, trace: TraceStore?,
          maxSteps: Int = 40, maxFailures: Int = 3) {
@@ -195,6 +200,8 @@ extension Pointer: Gestures {}
                     failures = 0
                 } catch let e where e is BlindError || e is CancellationError || Task.isCancelled {
                     throw e
+                } catch let e as LLMError where e.kind == "rate_limit_day" {
+                    throw e  // no point retrying today: ends the run with the message
                 } catch {  // a bad reply or a dropped link: recover, don't crash
                     record(nil, ["action": .str("hiccup"), "reason": .str(String(error.localizedDescription.prefix(300)))])
                     let linkLost = error is DeviceError && screen?.live == false  // the next look waits for it (waitForScreen)
@@ -242,6 +249,28 @@ extension Pointer: Gestures {}
         return true
     }
 
+    /// The actor asked before a risky step. True = the run is over (stopped).
+    private func confirm(_ reason: String) async throws -> Bool {
+        guard let onConfirm, Self.askBeforeRisky else {
+            record(nil, ["action": .str("confirmed"), "reason": .str("go ahead (asking first is off): \(reason)")])
+            return false
+        }
+        let choice = await onConfirm(reason)
+        try Task.checkCancellation()
+        switch choice {
+        case .stop:
+            record(nil, ["action": .str("stopped")])
+            return true
+        case .resume:
+            record(nil, ["action": .str("confirmed"), "reason": .str("the user said yes, do it now: \(reason)")])
+        case .skip:
+            record(nil, ["action": .str("skipped"), "reason": .str("the user said no, do not do this: \(reason)")])
+            await screen?.settled()
+            try await replan(stuck: true)
+        }
+        return false
+    }
+
     /// The actor's system prompt: the original, plus an intent's checklist as hints.
     var actorPrompt: String {
         let base = Prompts.actor + "\n" + AssistiveTouchSpots.rule
@@ -268,6 +297,10 @@ extension Pointer: Gestures {}
                 record(planned.shot, act)
                 try await replan(stuck: stuck)
                 return false
+            }
+            if name == "confirm" {
+                record(planned.shot, act)
+                return try await confirm(act["reason"]?.str ?? "")
             }
             if name != "done" && name != "fail" {
                 try await gate?()

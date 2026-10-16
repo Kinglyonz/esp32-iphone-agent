@@ -40,12 +40,14 @@ struct RunStat: Codable, Equatable, Hashable {
         }
     }
 
-    static var examples: [SavedTask] {
-        [SavedTask(name: String(localized: "8 AM Mon & Tue alarm"),
-                   prompt: String(localized: "Set an alarm for 8:00 AM that repeats every Monday and Tuesday, then save it")),
-         SavedTask(name: String(localized: "Draw a smiley"), prompt: String(localized: "Open Whiteboard and draw a smiley face")),
-         SavedTask(name: String(localized: "Wi-Fi settings"), prompt: String(localized: "Open Settings and go to Wi-Fi")),
-         SavedTask(name: String(localized: "Note: hello"), prompt: String(localized: "Open Notes and write \"hello\""))]
+    /// First launch: one intent for Notes and one for Clock (the demo run is the alarm).
+    static var examples: [SavedTask] { [note, alarm] }
+    static var note: SavedTask {
+        SavedTask(name: String(localized: "Note: hello"), prompt: String(localized: "Open Notes and write \"hello\""))
+    }
+    static var alarm: SavedTask {
+        SavedTask(name: String(localized: "7 AM daily alarm"),
+                  prompt: String(localized: "Set an alarm for 7:00 AM that repeats every day, then save it"))
     }
 
     func add(name: String, prompt: String) {

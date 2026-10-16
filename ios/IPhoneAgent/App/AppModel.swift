@@ -41,6 +41,8 @@ import UIKit
     @Published var tab = AppTab.agent
     /// Setup page to show (onboarding, or a Home status chip deep link); nil = hidden.
     @Published var setupPage: SetupPage?
+    /// Store builds: a run was started before the user agreed to the AI service; Agree starts it.
+    @Published var aiConsentRun: String?
     /// The review editor on screen (after a run, a recording, or editing an intent).
     @Published var review: ReviewDraft?
     /// Paused for the user: why (nil = not paused), and whether they are doing it by hand right now.
@@ -136,6 +138,7 @@ import UIKit
         agent.onDoing = { [weak self] d in self?.doing(d) }
         agent.onModelCall = { [weak self] call in self?.modelCalled(call) }
         agent.onHelp = { [weak self] reason in await self?.needsHelp(reason) ?? .stop }
+        agent.onConfirm = { [weak self] reason in await self?.needsHelp(reason, confirm: true) ?? .stop }
         agent.gate = { [weak self] in try await self?.holdWhileInFront() }
         AgentControl.handle = { [weak self] command in await self?.control(command) }
         AgentRequests.handle = { [weak self] request in await self?.handle(request) ?? AgentRequests.unavailable }
@@ -270,6 +273,11 @@ import UIKit
             try? await Task.sleep(nanoseconds: 900_000_000)
             modelOK = true
             return say("LLM ok (demo data)")
+        }
+        guard AIConsent.granted(settings.baseURL) else {
+            modelOK = false
+            modelError = String(localized: "Tap \"Allow sending to \(AIConsent.host(settings.baseURL))…\" above first.")
+            return
         }
         let started = now()
         let revision = settings.configurationRevision

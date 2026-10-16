@@ -32,6 +32,15 @@ struct ProviderFields: View {
             ModelPicker(settings: settings, title: "Model", selection: $settings.model,
                         automatic: String(localized: "Choose a model"), allowsDefault: false)
                 .frame(minHeight: 44).padding(.vertical, Space.xs)
+            if AIConsent.store && settings.isConfigured {
+                Divider()
+                AIConsentRow(settings: settings)
+            }
+            if settings.provider == .openRouter && (settings.model == "openrouter/free" || settings.model.hasSuffix(":free")) {
+                Text("Free models are rate-limited (about 20 requests a minute, 50 a day) and often busy. A run takes 20–40 requests, so runs can be slow or stop partway. A paid model works better.")
+                    .font(.footnote).foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, Space.s)
+            }
             if let error = settings.modelsError {
                 Text(verbatim: error).font(.footnote).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

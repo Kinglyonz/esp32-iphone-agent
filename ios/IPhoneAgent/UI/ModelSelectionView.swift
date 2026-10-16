@@ -85,7 +85,7 @@ struct ModelSelectionView: View {
             Section {
                 ForEach(free, id: \.self) { id in row(id) }
             } header: { Text("Free") } footer: {
-                Text("Free models are rate-limited (about 20 requests a minute, 50 a day) and can be slow. Automatic picks a free vision model for each request.")
+                Text("Free models are rate-limited (about 20 requests a minute, 50 a day) and often busy; a run takes 20–40 requests, so runs can be slow or stop partway. Automatic picks a free vision model for each request.")
             }
         }
         if !paid.isEmpty {

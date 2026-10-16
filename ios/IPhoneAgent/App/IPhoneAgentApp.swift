@@ -53,6 +53,12 @@ struct RootView: View {
             }
         }
         .background { Color.clear.sheet(isPresented: $consent, onDismiss: setUp) { ConsentSheet() } }
+        .sheet(item: Binding(get: { app.aiConsentRun.map(PendingRun.init) }, set: { app.aiConsentRun = $0?.task })) { pending in
+            AIConsentSheet(baseURL: settings.baseURL) {
+                settings.consentChanged()
+                Task { await app.startAgent(pending.task) }
+            }
+        }
         .onAppear {
             if privacyAsked { setUp() } else { consent = true }  // what is kept, before setup
             app.probe.install(CalibrationOverlay(calibrator: app.calibrator, probe: app.probe, pointer: app.pointer))
@@ -75,4 +81,9 @@ struct RootView: View {
         privacyAsked = true
         if !settings.onboarded && app.setupPage == nil { app.setupPage = .welcome }
     }
+}
+
+private struct PendingRun: Identifiable {
+    let task: String
+    var id: String { task }
 }
