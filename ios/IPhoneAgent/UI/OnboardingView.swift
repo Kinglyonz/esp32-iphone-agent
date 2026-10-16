@@ -42,6 +42,7 @@ struct OnboardingView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }  // always pinned, whatever the page's height
         .background(Palette.grouped.ignoresSafeArea())
         .animation(.spring(response: 0.45, dampingFraction: 0.9), value: page)
+        .onChange(of: page, initial: true) { _, now in Analytics.capture("setup_page", ["page": "\(now)"]) }
         .onChange(of: pageDone) { _, done in
             guard done, page != .welcome, page != .brain else { return }
             let from = page
@@ -103,6 +104,7 @@ struct OnboardingView: View {
     }
 
     private func finish() {
+        Analytics.capture("setup_finished", ["last_page": "\(page)"])
         settings.acceptedDisclaimer = true
         settings.onboarded = true
         if MockMode.on { app.mockReady() }  // demo data: everything ready, even what was skipped

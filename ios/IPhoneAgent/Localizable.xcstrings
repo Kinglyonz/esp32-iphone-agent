@@ -2708,16 +2708,6 @@
         }
       }
     },
-    "Nothing is uploaded. An export is redacted: secrets and IP addresses removed, typed text hidden, the top of every screenshot blacked out." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不会上传任何内容。导出内容会脱敏：去掉密钥和 IP 地址，隐藏输入的文字，并涂黑每张截图的顶部。"
-          }
-        }
-      }
-    },
     "Nothing logged yet." : {
       "localizations" : {
         "zh-Hans" : {
@@ -2844,16 +2834,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先打开一次 ESP32 Agent，然后再试。"
-          }
-        }
-      }
-    },
-    "Open source. No data leaves this iPhone except the requests to the model endpoint you set up." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "开源软件。除了发往你设置的模型接口的请求，没有数据离开这台 iPhone。"
           }
         }
       }
@@ -5604,6 +5584,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "让 ESP32 Agent 在这台手机上完成一个任务，比如“打开设置并进入无线局域网”。"
+          }
+        }
+      }
+    },
+    "Run data is never uploaded. An export is redacted: secrets and IP addresses removed, typed text hidden, the top of every screenshot blacked out." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行数据不会上传。导出内容会脱敏：去掉密钥和 IP 地址，隐藏输入的文字，并涂黑每张截图的顶部。"
+          }
+        }
+      }
+    },
+    "Share anonymous usage stats" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享匿名使用统计"
+          }
+        }
+      }
+    },
+    "Helps improve setup and runs: which setup steps finish, run results, step counts and timings, the model provider, app and iOS version. Never your tasks, screenshots, model replies, keys or addresses." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于改进设置和运行：完成了哪些设置步骤、运行结果、步数和耗时、模型服务商、App 和 iOS 版本。绝不包含你的任务、截图、模型回复、密钥或地址。"
+          }
+        }
+      }
+    },
+    "Open source. No data leaves this iPhone except the requests to the model endpoint you set up, and anonymous usage stats if you turn them on." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开源软件。除了发往你设置的模型接口的请求，以及你开启后的匿名使用统计，没有数据离开这台 iPhone。"
           }
         }
       }

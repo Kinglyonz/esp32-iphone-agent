@@ -163,6 +163,7 @@ import UIKit
         progress = nil
         problem = nil
         phase = .done
+        Analytics.capture("calibration_done", ["error_pct": (error * 1000).rounded() / 10])
         app.say(String(format: "calibration: ±%.1f%%", error * 100))
         closeBoard()
         toast = true
@@ -176,6 +177,7 @@ import UIKit
 
     /// The board stays up with the problem, Try Again and "Tap the pointer yourself".
     private func failed(_ why: String) {
+        Analytics.capture("calibration_failed")
         progress = nil
         problem = why
         phase = .failed

@@ -51,6 +51,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>IAAppGroup</key>
 	<string>group.$(IA_BUNDLE_ID)</string>
+	<key>IAPostHogHost</key>
+	<string>$(IA_POSTHOG_HOST)</string>
+	<key>IAPostHogKey</key>
+	<string>$(IA_POSTHOG_KEY)</string>
 	<key>IAPresetBaseURL</key>
 	<string>$(IA_PRESET_BASE_URL)</string>
 	<key>IAPresetKey</key>

@@ -108,12 +108,14 @@ import UIKit
         board.onStatus = { [weak self] s in
             self?.statusRefreshError = nil
             self?.feed.mirroring = s.ap == "streaming"
+            if s.ap == "streaming" { Analytics.captureOnce("mirroring_started") }
             if let up = s.up { self?.feed.boardClock(ms: up) }
             self?.metrics.status(s)
             self?.logStatus(s)
         }
         board.onLinkUp = { [weak self] in
             guard let self else { return }
+            Analytics.captureOnce("board_connected")
             feed.resetStream()
             metrics.mtu = board.mtu
             if agent.running && !MockMode.on && FrameMode.current == .stream {  // the board forgot `stream on`: the paused run needs the screen back
@@ -294,10 +296,12 @@ import UIKit
             metrics.llmPingMs = (now() - started) * 1000
             metrics.llm(first: r.firstToken, total: r.total)
             modelOK = true
+            Analytics.capture("model_test", settings.analyticsModel.merging(["ok": true]) { $1 })
             say(String(format: "LLM ok in %.0f ms: %@", metrics.llmPingMs ?? 0, String(r.text.prefix(40))))
         } catch {
             guard revision == settings.configurationRevision else { return }
             modelOK = false
+            Analytics.capture("model_test", settings.analyticsModel.merging(["ok": false]) { $1 })
             modelError = ModelRequestFailure.message(error)
             say("LLM: \(error.localizedDescription)")
         }

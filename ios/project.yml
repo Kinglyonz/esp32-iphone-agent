@@ -55,6 +55,9 @@ targets:
         IAPresetModel: $(IA_PRESET_MODEL)
         IAPresetKey: $(IA_PRESET_KEY)
         IAAppGroup: group.$(IA_BUNDLE_ID)
+        # Anonymous usage stats (opt-in); empty key = the build sends nothing
+        IAPostHogKey: $(IA_POSTHOG_KEY)
+        IAPostHogHost: $(IA_POSTHOG_HOST)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(IA_BUNDLE_ID)

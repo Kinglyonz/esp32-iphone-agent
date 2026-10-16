@@ -27,10 +27,12 @@ extension AppModel {
     func startAgent(_ task: String) async {
         if MockMode.on { return mockRun(task) }
         guard settings.isConfigured else {
+            Analytics.capture("run_blocked", ["reason": "model_not_set"])
             say(String(localized: "Set up the model in Settings first."))
             return
         }
         guard await calibrator.ensureCalibrated() else {
+            Analytics.capture("run_blocked", ["reason": "not_calibrated"])
             say(String(localized: "The pointer isn't calibrated yet."))
             return
         }
@@ -38,6 +40,7 @@ extension AppModel {
             agent.actor = try await settings.client("actor")
             agent.planner = try await settings.client("planner")
         } catch {
+            Analytics.capture("run_blocked", ["reason": "model_client"])
             say("LLM: \(error.localizedDescription)")
             return
         }
@@ -46,6 +49,8 @@ extension AppModel {
         let t0 = now()
         func mark(_ what: String) { DebugLog.write(String(format: "start: %@ (+%.0f ms)", what, (now() - t0) * 1000)) }
         traces.start(task: task)  // the run folder exists from here: a failed start keeps its log and video
+        Analytics.capture("run_started", settings.analyticsModel.merging(
+            ["from_intent": currentIntent != nil, "frame_mode": FrameMode.current == .snap ? "snap" : "stream"]) { $1 })
         startVideo()
         FrameMode.fallback = nil  // each run starts in the chosen mode
         let snapMode = FrameMode.current == .snap
@@ -164,6 +169,8 @@ extension AppModel {
         let last = agent.steps.last
         let outcome = Outcome(last: last?["action"]?.str, running: false)
         let seconds = Date().timeIntervalSince(runStarted)
+        Analytics.capture("run_ended", ["outcome": "\(outcome)", "steps": moveCount, "seconds": Int(seconds),
+                                        "from_intent": currentIntent != nil])
         runMood = outcome.mood
         live.end((outcome.mood, last.map(StepText.line) ?? ""))
         runs.reload()

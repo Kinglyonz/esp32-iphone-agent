@@ -7,6 +7,7 @@ struct IPhoneAgentApp: App {
     init() {
         _ = AppModel.shared  // also on a background launch for an App Intent, which shows no scene
         CrashReports.shared.start()
+        Analytics.start()
     }
 
     var body: some Scene {

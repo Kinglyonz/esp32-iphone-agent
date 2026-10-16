@@ -25,20 +25,13 @@ struct AboutView: View {
         **Steps**
         1.
 
-        ESP32 Agent \(version) · \(device.systemName) \(device.systemVersion) · \(Self.model)
+        ESP32 Agent \(version) · \(device.systemName) \(device.systemVersion) · \(DeviceInfo.model)
         (Attach the zip from Settings › About › Logs › Export all logs.)
         """
         var c = URLComponents(url: Self.repo.appendingPathComponent("issues/new"), resolvingAgainstBaseURL: false)!
         c.queryItems = [URLQueryItem(name: "labels", value: "bug"), URLQueryItem(name: "body", value: body)]
         return c.url ?? Self.repo
     }
-
-    /// The hardware model, e.g. "iPhone17,2".
-    private static let model: String = {
-        var info = utsname()
-        uname(&info)
-        return withUnsafeBytes(of: &info.machine) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
-    }()
 
     var body: some View {
         List {
@@ -66,7 +59,7 @@ struct AboutView: View {
                     SettingsLabel(title: "Disclaimer", symbol: "exclamationmark.shield.fill", color: .orange)
                 }
             } footer: {
-                Text("Open source. No data leaves this iPhone except the requests to the model endpoint you set up.")
+                Text("Open source. No data leaves this iPhone except the requests to the model endpoint you set up, and anonymous usage stats if you turn them on.")
             }
             Section {
                 Link(destination: bugReport) {

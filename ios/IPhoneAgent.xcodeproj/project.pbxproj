@@ -110,6 +110,7 @@
 		F2FFDB2986493F65EB6A9738 /* LogUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D9FABC284798F9949C1A8EF /* LogUploader.swift */; };
 		F3DE9777E0FAD414E17465BC /* VideoAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4270DF66937405FC86B145 /* VideoAssembler.swift */; };
 		F6301B26DAF28C96D09F6D8E /* RunShare.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B84B4F1C81E697ACB30630 /* RunShare.swift */; };
+		F66B85509456CAFD4A48376F /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60955809E15AC0A89AD72418 /* Analytics.swift */; };
 		F77EB884A6AE61AC290911D9 /* AssistiveTouchSpots.swift in Sources */ = {isa = PBXBuildFile; fileRef = D317C60AA727B6A20A589DAC /* AssistiveTouchSpots.swift */; };
 		FC0BD528A254726D869FDF5B /* ModelRequestFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96A8E3AF04195B586F10EDC4 /* ModelRequestFailure.swift */; };
 /* End PBXBuildFile section */
@@ -193,6 +194,7 @@
 		5962900FEB08728899160DD1 /* DemoRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRecorder.swift; sourceTree = "<group>"; };
 		5B66A62AA77E063E8DFDD52B /* ModelResponseProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelResponseProgress.swift; sourceTree = "<group>"; };
 		607F9EBBC39E74507B73F751 /* H264Decoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = H264Decoder.swift; sourceTree = "<group>"; };
+		60955809E15AC0A89AD72418 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 		65736EFE5D5C4AF40EDC5F92 /* AutoCalibrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoCalibrator.swift; sourceTree = "<group>"; };
 		6DCAEE3FDF94357F8875E473 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		6EC7C29EBD2DA1A602B0BED2 /* AppShortcuts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = AppShortcuts.xcstrings; sourceTree = "<group>"; };
@@ -423,6 +425,7 @@
 		84CF32A0010E6F1E5085D90E /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				60955809E15AC0A89AD72418 /* Analytics.swift */,
 				0FB6A431F87BEDCFBF1201C4 /* CrashReports.swift */,
 				0B88A1538529C9674B323370 /* DebugLog.swift */,
 				DCDA925D0FFD42810895573C /* LLMClient.swift */,
@@ -654,6 +657,7 @@
 				7B925E867DA328C9A682CDE0 /* AgentLoop.swift in Sources */,
 				2013DD86239B8EE1396CB82B /* AgentShortcuts.swift in Sources */,
 				57716E1B9BBB6026600DAD4C /* AgentSnapshot.swift in Sources */,
+				F66B85509456CAFD4A48376F /* Analytics.swift in Sources */,
 				DDC8DB5DA64D75338F3A52DF /* AppModel.swift in Sources */,
 				812925C7EC9F24F99DC06037 /* AppPresence.swift in Sources */,
 				F77EB884A6AE61AC290911D9 /* AssistiveTouchSpots.swift in Sources */,

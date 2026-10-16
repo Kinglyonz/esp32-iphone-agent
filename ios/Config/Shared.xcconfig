@@ -18,6 +18,11 @@ IA_PRESET_BASE_URL =
 IA_PRESET_MODEL =
 IA_PRESET_KEY =
 
+// Opt-in anonymous usage stats (PostHog project API key, public by design). Empty = nothing is sent,
+// so builds from source never report to the official project. Set both in Local.xcconfig.
+IA_POSTHOG_KEY =
+IA_POSTHOG_HOST = https:/$()/us.i.posthog.com
+
 // The app and its widget extension share these; fastlane sets the build number for each upload.
 MARKETING_VERSION = 1.0
 CURRENT_PROJECT_VERSION = 1

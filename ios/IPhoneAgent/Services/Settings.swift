@@ -84,6 +84,14 @@ import UIKit
         return autoModel.isEmpty ? nil : autoModel
     }
 
+    /// For usage stats: the provider, and the model ID only for a known provider (a custom server's model
+    /// name could identify it). Never the address or key.
+    var analyticsModel: [String: Any] {
+        var p: [String: Any] = ["provider": provider.rawValue]
+        if provider != .others, let m = currentModel { p["model"] = m }
+        return p
+    }
+
     /// Use an explicit model or a previously saved selection; never guess from API list order.
     func resolvedModel() async throws -> String {
         if let m = currentModel { return m }
