@@ -18,8 +18,9 @@ IA_PRESET_BASE_URL =
 IA_PRESET_MODEL =
 IA_PRESET_KEY =
 
-// Opt-in anonymous usage stats (PostHog project API key, public by design). Empty = nothing is sent,
-// so builds from source never report to the official project. Set both in Local.xcconfig.
+// Opt-in anonymous usage stats (a PostHog project API key, public by design). Empty = no switch and
+// nothing is sent: every local build, unless you set your own key (and host) in Local.xcconfig.
+// Store builds get the official key from fastlane (IA_POSTHOG_KEY in ~/.appstoreconnect/config.env).
 IA_POSTHOG_KEY =
 IA_POSTHOG_HOST = https:/$()/us.i.posthog.com
 

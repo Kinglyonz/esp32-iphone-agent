@@ -1,7 +1,8 @@
 # Store builds: `fastlane beta` (from ios/) archives a Release and uploads it to TestFlight.
 # Auth is an App Store Connect API key described in ~/.appstoreconnect/config.env
 # (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH); signing uses Xcode's Apple ID and the team in Config/Local.xcconfig.
-# The LLM preset from Local.xcconfig is cleared and the built app is checked for it.
+# The LLM preset from Local.xcconfig is cleared and the built app is checked for it. The official PostHog key
+# (IA_POSTHOG_KEY in config.env) is set only here, so local builds never report usage stats.
 
 default_platform(:ios)
 
@@ -25,6 +26,7 @@ platform :ios do
   lane :beta do
     asc_key
     bundle_id = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    UI.important("IA_POSTHOG_KEY is not in #{STORE_ENV}: this build sends no usage stats") if ENV["IA_POSTHOG_KEY"].to_s.empty?
     build = latest_testflight_build_number(app_identifier: bundle_id, initial_build_number: 0) + 1
     # Signing uses the Apple ID signed in to Xcode: only it can register the App Group (the API key can't).
     auth = "-allowProvisioningUpdates"
@@ -33,6 +35,7 @@ platform :ios do
       IA_ENTITLEMENTS: "IPhoneAgent/IPhoneAgent.entitlements",
       IA_WIDGET_ENTITLEMENTS: "AgentActivity/AgentActivity.entitlements",
       IA_PRESET_BASE_URL: "", IA_PRESET_MODEL: "", IA_PRESET_KEY: "",
+      IA_POSTHOG_KEY: ENV["IA_POSTHOG_KEY"].to_s,
       CURRENT_PROJECT_VERSION: build,
     }.map { |k, v| "#{k}='#{v}'" }.join(" ")
 
