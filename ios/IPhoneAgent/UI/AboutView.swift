@@ -6,6 +6,8 @@ struct AboutView: View {
     static let repo = URL(string: "https://github.com/onehumanbeing/esp32-iphone-agent")!
     static let author = URL(string: "https://x.com/iamhenryyuan")!
     static let discord = URL(string: "https://discord.gg/BSJEnfdDX")!
+    static let website = URL(string: "https://handsy.tech")!
+    static let privacyPolicy = URL(string: "https://handsy.tech/privacy")!
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -52,6 +54,8 @@ struct AboutView: View {
                 CommunityRow(logo: "DiscordLogo", title: "Join the Discord", url: Self.discord)
             }
             Section {
+                LinkRow(title: "Website", symbol: "globe", color: .blue, url: Self.website)
+                LinkRow(title: "Privacy policy", symbol: "hand.raised.fill", color: .indigo, url: Self.privacyPolicy)
                 NavigationLink { AcknowledgementsView() } label: {
                     SettingsLabel(title: "Acknowledgements", symbol: "heart.fill", color: .pink)
                 }
@@ -62,14 +66,7 @@ struct AboutView: View {
                 Text("Open source. No data leaves this iPhone except the requests to the model endpoint you set up, and anonymous usage stats if you turn them on.")
             }
             Section {
-                Link(destination: bugReport) {
-                    HStack {
-                        SettingsLabel(title: "Report a bug", symbol: "ladybug.fill", color: .red)
-                        Spacer()
-                        Image(systemName: "arrow.up.forward.app").foregroundStyle(.tertiary)
-                    }
-                }
-                .tint(.primary)
+                LinkRow(title: "Report a bug", symbol: "ladybug.fill", color: .red, url: bugReport)
                 NavigationLink { LogsView(app: app) } label: {
                     SettingsLabel(title: "Logs", symbol: "text.alignleft", color: .gray)
                 }
@@ -83,6 +80,25 @@ struct AboutView: View {
 }
 
 /// A link row with a brand mark (template image: black or white with the appearance), opened with openURL.
+/// A settings-style row that opens a web page.
+struct LinkRow: View {
+    let title: LocalizedStringKey
+    let symbol: String
+    let color: Color
+    let url: URL
+
+    var body: some View {
+        Link(destination: url) {
+            HStack {
+                SettingsLabel(title: title, symbol: symbol, color: color)
+                Spacer()
+                Image(systemName: "arrow.up.forward.app").foregroundStyle(.tertiary)
+            }
+        }
+        .tint(.primary)
+    }
+}
+
 struct CommunityRow: View {
     let logo: String
     let title: LocalizedStringKey

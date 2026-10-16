@@ -80,6 +80,7 @@ struct PrivacySettingsView: View {
             Section { Toggle("Keep run data for sharing", isOn: $keep) }
             if keep { export }
             UsageStatsSection()
+            Section { LinkRow(title: "Privacy policy", symbol: "hand.raised.fill", color: .indigo, url: AboutView.privacyPolicy) }
         }
         .navigationTitle("Privacy")
         .onAppear { runs.reload() }
