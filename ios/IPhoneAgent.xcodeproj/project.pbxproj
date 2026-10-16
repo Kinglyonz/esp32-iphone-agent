@@ -94,6 +94,7 @@
 		BD09EA4793C0B09297190CD9 /* BoardProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DFECC30B2ADEB1BB69072EC /* BoardProtocol.swift */; };
 		C4F3ADB5189E27B999BDDF83 /* TouchProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5099810C37BB0AD66EDC8C8 /* TouchProbe.swift */; };
 		CED032EC090264C33AD7D1D1 /* Prompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B2B975DEE7BC511DC51441F /* Prompts.swift */; };
+		CF0916DB59A4A0D050445AE8 /* ModelCall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1822FD290B50A818CE12228E /* ModelCall.swift */; };
 		CFDC07BA9E09D3446164B1B9 /* OnboardingDemos.swift in Sources */ = {isa = PBXBuildFile; fileRef = D17A722B1C48BF8FBF8B4222 /* OnboardingDemos.swift */; };
 		D04078EE246F6B5EB38D64B5 /* prompts in Resources */ = {isa = PBXBuildFile; fileRef = 769290C5E01DE7CA97412DDA /* prompts */; };
 		D48CF75915F3D1FFE18ADC3A /* BoardLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33107099A7483949F03FBDB6 /* BoardLink.swift */; };
@@ -157,6 +158,7 @@
 		13664BFD54E7827E0E53B7F6 /* MockMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockMode.swift; sourceTree = "<group>"; };
 		16165E2AD13D29F06CBFA5B0 /* AgentActivity.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AgentActivity.entitlements; sourceTree = "<group>"; };
 		17DBD3270E7E91B39C3C7438 /* AgentLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentLoop.swift; sourceTree = "<group>"; };
+		1822FD290B50A818CE12228E /* ModelCall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelCall.swift; sourceTree = "<group>"; };
 		1887982FE1A729487269296E /* VisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionTests.swift; sourceTree = "<group>"; };
 		1C25AC81D9FBF6073FDD1851 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		2169FBFC7A60B9FC1FF1E724 /* StepText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepText.swift; sourceTree = "<group>"; };
@@ -266,6 +268,7 @@
 				17DBD3270E7E91B39C3C7438 /* AgentLoop.swift */,
 				D317C60AA727B6A20A589DAC /* AssistiveTouchSpots.swift */,
 				FCC7FAA4989F36E7F9B4C021 /* JSON.swift */,
+				1822FD290B50A818CE12228E /* ModelCall.swift */,
 				A5CC3BCF7F90AF60B075DD96 /* Pointer.swift */,
 				435B39A7D499300AADA2D16C /* ProbeFit.swift */,
 				8B2B975DEE7BC511DC51441F /* Prompts.swift */,
@@ -687,6 +690,7 @@
 				F2FFDB2986493F65EB6A9738 /* LogUploader.swift in Sources */,
 				7B684FAA8B218BB9798F9EC3 /* Metrics.swift in Sources */,
 				B356EECAFE045249704E63FD /* MockMode.swift in Sources */,
+				CF0916DB59A4A0D050445AE8 /* ModelCall.swift in Sources */,
 				1032BD2A5C93F44527463EC7 /* ModelConnectionCheck.swift in Sources */,
 				2CF0D6C8101BF02E0EDF44E2 /* ModelPicker.swift in Sources */,
 				A5A78F1B4D15D843B8932932 /* ModelProvider.swift in Sources */,

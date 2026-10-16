@@ -37,15 +37,12 @@ struct ModelSelectionView: View {
                     Button("Use Model ID") { choose(customID.trimmingCharacters(in: .whitespacesAndNewlines)) }
                         .disabled(customID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                if !visible.filter({ Self.routers.contains($0) }).isEmpty {
-                    Section {
-                        ForEach(visible.filter { Self.routers.contains($0) }, id: \.self) { id in row(id) }
-                    } header: { Text("Automatic routing") } footer: {
-                        Text("OpenRouter chooses a model for each request. Free model availability and responses can vary.")
+                if settings.provider == .openRouter {
+                    openRouterSections(visible)
+                } else {
+                    Section("Models") {
+                        ForEach(visible, id: \.self) { id in row(id) }
                     }
-                }
-                Section("Models") {
-                    ForEach(visible.filter { !Self.routers.contains($0) }, id: \.self) { id in row(id) }
                 }
                 if settings.loadingModels {
                     ProgressView("Loading models…")
@@ -74,6 +71,28 @@ struct ModelSelectionView: View {
             }
             .task {
                 if settings.models.isEmpty && !settings.loadingModels { await settings.loadModels() }
+            }
+        }
+    }
+
+    /// Free (the free router first) and paid (the auto router first); the list holds vision models only.
+    @ViewBuilder private func openRouterSections(_ visible: [String]) -> some View {
+        let free = visible.filter { settings.freeModels.contains($0) || $0 == "openrouter/free" }
+            .sorted { ($0 == "openrouter/free" ? 0 : 1, $0) < ($1 == "openrouter/free" ? 0 : 1, $1) }
+        let paid = visible.filter { !free.contains($0) }
+            .sorted { ($0 == "openrouter/auto" ? 0 : 1, $0) < ($1 == "openrouter/auto" ? 0 : 1, $1) }
+        if !free.isEmpty {
+            Section {
+                ForEach(free, id: \.self) { id in row(id) }
+            } header: { Text("Free") } footer: {
+                Text("Free models are rate-limited (about 20 requests a minute, 50 a day) and can be slow. Automatic picks a free vision model for each request.")
+            }
+        }
+        if !paid.isEmpty {
+            Section {
+                ForEach(paid, id: \.self) { id in row(id) }
+            } header: { Text(verbatim: "OpenRouter") } footer: {
+                Text("Billed to your OpenRouter credits. Vision models only.")
             }
         }
     }

@@ -32,6 +32,8 @@ import UIKit
     /// What the agent is called (Agent tab title, greeting, Live Activity); empty = the default.
     /// The endpoint's model list (GET /models), for the pickers; empty until loaded or when it can't be fetched.
     @Published private(set) var models: [String] = []
+    /// OpenRouter only: the listed models that cost nothing (the list itself is vision models only).
+    @Published private(set) var freeModels: Set<String> = []
     @Published private(set) var loadingModels = false
     @Published private(set) var modelsError: String?
     private var modelsRequest = 0
@@ -93,6 +95,13 @@ import UIKit
         return p
     }
 
+    /// A model request's stats with the provider; the model names are dropped for a custom server, as above.
+    func analyticsModel(_ call: ModelCall) -> [String: Any] {
+        var p = analyticsModel.merging(call.props) { $1 }
+        if provider == .others { p["model"] = nil; p["served_model"] = nil }
+        return p
+    }
+
     /// Use an explicit model or a previously saved selection; never guess from API list order.
     func resolvedModel() async throws -> String {
         if let m = currentModel { return m }
@@ -105,6 +114,7 @@ import UIKit
         loadingModels = false
         autoModel = ""
         models = []
+        freeModels = []
         modelsError = nil
     }
 
@@ -123,7 +133,7 @@ import UIKit
         let changedEndpoint = baseURL != choice.baseURL
         baseURL = choice.baseURL
         if changedEndpoint { apiKey = Keychain.get("llm-endpoint-" + baseURL) ?? "" }
-        model = ""
+        model = choice == .openRouter ? "openrouter/free" : ""  // works with any key, no model to pick first
         plannerModel = ""
         actorModel = ""
         tokenParam = "auto"
@@ -139,15 +149,22 @@ import UIKit
         loadingModels = true
         defer { if request == modelsRequest { loadingModels = false } }
         do {
-            let list = try await LLMClient.models(baseURL: baseURL, apiKey: apiKey)
+            var list: [String], free = Set<String>()
+            if provider == .openRouter {
+                (list, free) = try await LLMClient.openRouterModels(apiKey: apiKey)
+            } else {
+                list = try await LLMClient.models(baseURL: baseURL, apiKey: apiKey)
+            }
             guard request == modelsRequest else { return }
             models = list
+            freeModels = free
             modelsError = list.isEmpty ? String(localized: "The endpoint lists no models.") : nil
             // Model order does not indicate image support; never silently select the first entry.
             DebugLog.write("models: \(list.count) listed, first \(list.first ?? "-")")
         } catch {
             guard request == modelsRequest else { return }
             models = []
+            freeModels = []
             modelsError = error.localizedDescription
             DebugLog.write("models: \(error.localizedDescription)")
         }

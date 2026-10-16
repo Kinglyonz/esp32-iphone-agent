@@ -63,6 +63,7 @@ import UIKit
     var currentIntent: SavedTask?
     var lastTask = ""
     var runStarted = Date()
+    var runUsage = ModelUsage()
     private var settingsSink: AnyCancellable?
     var videoSink: AnyCancellable?
     var videoDir: URL?
@@ -133,6 +134,7 @@ import UIKit
         agent.onFinish = { [weak self] in self?.agentFinished() }
         agent.onStep = { [weak self] in self?.stepped() }
         agent.onDoing = { [weak self] d in self?.doing(d) }
+        agent.onModelCall = { [weak self] call in self?.modelCalled(call) }
         agent.onHelp = { [weak self] reason in await self?.needsHelp(reason) ?? .stop }
         agent.gate = { [weak self] in try await self?.holdWhileInFront() }
         AgentControl.handle = { [weak self] command in await self?.control(command) }
@@ -296,12 +298,14 @@ import UIKit
             metrics.llmPingMs = (now() - started) * 1000
             metrics.llm(first: r.firstToken, total: r.total)
             modelOK = true
-            Analytics.capture("model_test", settings.analyticsModel.merging(["ok": true]) { $1 })
+            Analytics.capture("model_test", settings.analyticsModel(ModelCall(role: "test", model: client.model, reply: r,
+                                                                              error: nil, imageKB: 0)))
             say(String(format: "LLM ok in %.0f ms: %@", metrics.llmPingMs ?? 0, String(r.text.prefix(40))))
         } catch {
             guard revision == settings.configurationRevision else { return }
             modelOK = false
-            Analytics.capture("model_test", settings.analyticsModel.merging(["ok": false]) { $1 })
+            Analytics.capture("model_test", settings.analyticsModel(ModelCall(role: "test", model: settings.currentModel ?? "",
+                                                                              reply: nil, error: error, imageKB: 0)))
             modelError = ModelRequestFailure.message(error)
             say("LLM: \(error.localizedDescription)")
         }

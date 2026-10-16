@@ -31,6 +31,8 @@ fixed list of events to PostHog (US), which the developer uses to see where setu
 - run started, blocked (why: model not set, pointer not calibrated) and ended: outcome, number of steps,
   duration, whether it came from a saved intent
 - the model provider (e.g. OpenRouter) and, for a known provider, the model ID; never the address or key
+- for each model request: how long it took, token counts, whether it failed and how (timeout, rate limit,
+  server error), and for a known provider the model that answered; never the prompt, screenshot or reply
 - app version, iOS version, device model (e.g. iPhone17,2), language
 - crash and hang reports that iOS gives the app (MetricKit): exception type, signal, hang length, and the
   call stack as memory addresses; they contain no app data

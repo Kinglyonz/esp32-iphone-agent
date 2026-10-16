@@ -4,8 +4,8 @@ import Foundation
 /// Starts, updates and ends the Live Activity of a run or a recording. While the agent works the app is in
 /// the background, so this is the user's view of the run; the app updates it whenever BLE wakes it.
 ///
-/// Larger presentations animate gaze changes when actions update `look`. The former random idle gaze
-/// loop is preserved but disabled to keep the primary text-only minimal presentation stable.
+/// The face springs to a gesture's target when an action updates `look` and morphs on a mood change. The
+/// random idle gaze loop is kept but off: cosmetic updates make the whole island flicker.
 /// Updates go through a token bucket (burst 2, then 1 per second), so the system never sees more than ~1/s.
 @MainActor final class LiveActivityController {
     typealias State = AgentActivityAttributes.ContentState
@@ -103,10 +103,8 @@ import Foundation
 
     /// While waiting: glance somewhere else every 1.4-2.2 s, mostly sideways, never twice at the same spot.
     private func startDarting() {
-        // Preserve the gaze implementation, but do not send cosmetic updates while the primary
-        // minimal presentation is text-only. ActivityKit does not tell this controller which
-        // presentation is visible; repeated updates can animate the entire island. Action-driven
-        // gaze and mood updates remain enabled in the larger presentations.
+        // Off: ActivityKit does not say which presentation is visible, and repeated cosmetic updates
+        // animate the entire island. Action-driven gaze and mood updates stay on.
         guard Self.idleGazeEnabled else { return }
         guard darting == nil else { return }
         darting = Task { [weak self] in

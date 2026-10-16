@@ -58,6 +58,8 @@ extension Pointer: Gestures {}
     var onStep: (() -> Void)?
     /// What the agent is busy with between steps, for the Dynamic Island (looking, thinking, about to act).
     var onDoing: ((Doing) -> Void)?
+    /// Every model request, answered or failed (timing and token counts, for usage stats).
+    var onModelCall: ((ModelCall) -> Void)?
     enum Doing { case looking, waiting, planning, thinking, retrying, acting(JObject) }
     /// Hints from a saved intent's checklist, appended to the actor's system prompt (empty = the original prompt).
     var hints: [String] = []
@@ -159,6 +161,9 @@ extension Pointer: Gestures {}
             reply = try await llm.chat(system: system, text: prompt, image: frame,
                                        maxTokens: Self.maxTokens[role] ?? 1000, temperature: temperature)
         } catch {
+            if !Task.isCancelled {
+                onModelCall?(ModelCall(role: role, model: llm.model, reply: nil, error: error, imageKB: (frame?.count ?? 0) / 1024))
+            }
             guard retryTimeout, ModelRequestFailure.isTimeout(error), !Task.isCancelled else { throw error }
             DebugLog.write("model request timed out (\(role)); retrying once with a fresh screen")
             onDoing?(.retrying)
@@ -168,6 +173,7 @@ extension Pointer: Gestures {}
         }
         let seconds = ((now() - started) * 100).rounded() / 100
         metrics?.llm(first: reply.firstToken, total: reply.total)
+        onModelCall?(ModelCall(role: role, model: llm.model, reply: reply, error: nil, imageKB: (frame?.count ?? 0) / 1024))
         var rec: JObject = ["role": .str(role), "model": .str(llm.model), "prompt": .str(prompt),
                             "reply": .str(reply.text), "seconds": .num(seconds)]
         if let first = reply.firstToken { rec["first_token_s"] = .num((first * 100).rounded() / 100) }

@@ -43,13 +43,34 @@ final class StubProtocol: URLProtocol {
         XCTAssertNotEqual(ModelProvider.qwen.baseURL, ModelProvider.qwenInternational.baseURL)
     }
 
+    func testModelCallStatsCarryNoContent() {
+        var reply = ChatResult(text: "secret reply", firstToken: 1.234, total: 4.567)
+        reply.usage = ["prompt_tokens": 1200, "completion_tokens": 80]
+        reply.servedModel = "google/gemma-4-31b-it:free"
+        let ok = ModelCall(role: "actor", model: "openrouter/free", reply: reply, error: nil, imageKB: 90).props
+        XCTAssertEqual(ok["total_s"] as? Double, 4.57)
+        XCTAssertEqual(ok["prompt_tokens"] as? Int, 1200)
+        XCTAssertEqual(ok["served_model"] as? String, "google/gemma-4-31b-it:free")
+        XCTAssertFalse(ok.values.contains { ($0 as? String)?.contains("secret") == true })
+        let failed = ModelCall(role: "actor", model: "m", reply: nil, error: LLMError(message: "x", status: 429), imageKB: 0)
+        XCTAssertEqual(failed.props["error"] as? String, "http_429")
+        XCTAssertEqual(ModelCall(role: "a", model: "m", reply: nil, error: URLError(.timedOut), imageKB: 0).props["error"] as? String,
+                       "timeout")
+        var usage = ModelUsage()
+        usage.add(ModelCall(role: "actor", model: "m", reply: reply, error: nil, imageKB: 0))
+        usage.add(failed)
+        XCTAssertEqual(usage.props["model_calls"] as? Int, 2)
+        XCTAssertEqual(usage.props["model_failures"] as? Int, 1)
+        XCTAssertEqual(usage.props["avg_total_s"] as? Double, 4.57)
+    }
+
     func testProviderSwitchResetsModelOverridesAndOthersKeepsEditableConfig() async throws {
         let name = "provider-test-" + UUID().uuidString
         let defaults = UserDefaults(suiteName: name)!
         defer { defaults.removePersistentDomain(forName: name) }
         let settings = Settings(defaults: defaults, info: [:])
         settings.selectProvider(.openRouter)
-        settings.model = "openrouter/free"
+        XCTAssertEqual(settings.model, "openrouter/free")  // the default, no pick needed
         XCTAssertEqual(settings.baseURL, "https://openrouter.ai/api/v1")
         let model = try await settings.resolvedModel()
         XCTAssertEqual(model, "openrouter/free")

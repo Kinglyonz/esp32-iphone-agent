@@ -119,6 +119,7 @@ extension AppModel {
         moodReset?.cancel()
         runMood = .thinking
         runStarted = Date()
+        runUsage = ModelUsage()
         if !early {
             live.start(task: task, runID: runID, limit: agent.maxSteps)
             if !MockMode.on { startVideo() }  // always: the review needs it, even for a run that stops at once
@@ -156,6 +157,12 @@ extension AppModel {
         }
     }
 
+    /// A model request finished or failed: counted for the run, and one usage-stats event (no content).
+    func modelCalled(_ call: ModelCall) {
+        runUsage.add(call)
+        Analytics.capture("model_request", settings.analyticsModel(call))
+    }
+
     /// The run ended: outcome on the character, Live Activity and a notification; then the review opens.
     func ended() {
         videoSink = nil
@@ -169,8 +176,8 @@ extension AppModel {
         let last = agent.steps.last
         let outcome = Outcome(last: last?["action"]?.str, running: false)
         let seconds = Date().timeIntervalSince(runStarted)
-        Analytics.capture("run_ended", ["outcome": "\(outcome)", "steps": moveCount, "seconds": Int(seconds),
-                                        "from_intent": currentIntent != nil])
+        Analytics.capture("run_ended", runUsage.props.merging(["outcome": "\(outcome)", "steps": moveCount,
+                                                               "seconds": Int(seconds), "from_intent": currentIntent != nil]) { $1 })
         runMood = outcome.mood
         live.end((outcome.mood, last.map(StepText.line) ?? ""))
         runs.reload()

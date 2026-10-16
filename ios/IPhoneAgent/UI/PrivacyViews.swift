@@ -32,7 +32,7 @@ struct UsageStatsSection: View {
                 Toggle("Share anonymous usage stats", isOn: $on)
                     .onChange(of: on) { _, value in Analytics.consentChanged(value) }
             } footer: {
-                Text("Helps improve setup and runs: which setup steps finish, run results, step counts and timings, the model provider, app and iOS version, and crash reports. Never your tasks, screenshots, model replies, keys or addresses.")
+                Text("Helps improve setup and runs: which setup steps finish, run results, step counts and timings, the model provider, model speed and token counts, app and iOS version, and crash reports. Never your tasks, screenshots, model replies, keys or addresses.")
             }
         }
     }

@@ -10,6 +10,7 @@ struct ChatResult {
     var rawChars = 0                // content before trimming
     var responseSeconds: Double?  // time to HTTP headers, including server queue time
     var retried = false             // the first reply was empty
+    var servedModel: String?        // the model that answered (e.g. the one openrouter/free picked)
 
     /// For the trace and the debug log: why a reply came back empty or cut.
     var diagnostics: JObject {
@@ -32,6 +33,7 @@ struct ChatResult {
 
 struct LLMError: LocalizedError {
     let message: String
+    var status = 0  // the HTTP status, when the server answered with an error
     var errorDescription: String? { message }
 }
 
@@ -61,10 +63,11 @@ struct LLMError: LocalizedError {
         // "auto": send max_tokens; switch for good if the server asks for max_completion_tokens
         if Self.tokenParams.contains(tokenParam) { (self.tokenParam, auto) = (tokenParam, false) }
         else { (self.tokenParam, auto) = ("max_tokens", true) }
+        let slow = self.baseURL.host?.hasSuffix("openrouter.ai") == true  // free models queue and route
         self.session = session ?? {
             let config = URLSessionConfiguration.default
-            config.timeoutIntervalForRequest = 30  // no byte for this long = hung; the agent retries
-            config.timeoutIntervalForResource = 90
+            config.timeoutIntervalForRequest = slow ? 60 : 30  // no byte for this long = hung; the agent retries
+            config.timeoutIntervalForResource = slow ? 180 : 90
             return URLSession(configuration: config)
         }()
     }
@@ -109,13 +112,18 @@ struct LLMError: LocalizedError {
                 (tokenParam, auto) = ("max_completion_tokens", false)
                 (status, result, errorText) = try await post(body, maxTokens: maxTokens, started: started)
             }
+            if [429, 502, 503, 504].contains(status) {  // rate limit or a busy upstream: once more
+                DebugLog.write("llm: HTTP \(status), retrying")
+                try await Task.sleep(for: .seconds(status == 429 ? 5 : 3))
+                (status, result, errorText) = try await post(body, maxTokens: maxTokens, started: started)
+            }
         } catch {
             DebugLog.write(String(format: "llm ✗ %@ after %.1f s: %@", model, now() - started, error.localizedDescription))
             throw error
         }
         guard (200..<300).contains(status), var result else {
             DebugLog.write(String(format: "llm ✗ HTTP %d after %.1f s: %@", status, now() - started, String(errorText.prefix(200))))
-            throw LLMError(message: "LLM HTTP \(status): \(errorText.prefix(300))")
+            throw LLMError(message: "LLM HTTP \(status): \(errorText.prefix(300))", status: status)
         }
         result.total = now() - started
         DebugLog.write(String(format: "llm ← HTTP %d, first token %@, total %.1f s, %d chars", status,
@@ -134,6 +142,30 @@ struct LLMError: LocalizedError {
 
     /// The model ids from GET {base}/models (OpenAI list format: {"data": [{"id": ...}]}), in the endpoint's order.
     static func models(baseURL: String, apiKey: String) async throws -> [String] {
+        var seen = Set<String>()
+        return try await listing(baseURL: baseURL, apiKey: apiKey).compactMap { ($0["id"] ?? $0["name"]) as? String }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
+    /// OpenRouter's models that read images and answer in text (no music or image generators, no safety
+    /// classifiers), and which of them are free. `openrouter/auto` is listed as image output, so it is added.
+    static func openRouterModels(apiKey: String) async throws -> (ids: [String], free: Set<String>) {
+        var ids = ["openrouter/auto"], free = Set<String>()
+        for m in try await listing(baseURL: ModelProvider.openRouter.baseURL, apiKey: apiKey) {
+            guard let id = m["id"] as? String, !ids.contains(id),
+                  !id.contains("guard"), !id.contains("content-safety") else { continue }
+            let arch = m["architecture"] as? [String: Any]
+            guard (arch?["input_modalities"] as? [String])?.contains("image") == true,
+                  arch?["output_modalities"] as? [String] == ["text"] else { continue }
+            let price = m["pricing"] as? [String: Any]
+            let zero = ["prompt", "completion"].allSatisfy { Double(price?[$0] as? String ?? "") == 0 }
+            if zero || id.hasSuffix(":free") { free.insert(id) }
+            ids.append(id)
+        }
+        return (ids, free)
+    }
+
+    private static func listing(baseURL: String, apiKey: String) async throws -> [[String: Any]] {
         var trimmed = baseURL
         while trimmed.hasSuffix("/") { trimmed.removeLast() }
         guard let base = URL(string: trimmed) else { throw LLMError(message: "invalid base URL") }
@@ -145,9 +177,7 @@ struct LLMError: LocalizedError {
             throw LLMError(message: "GET /models: HTTP \(status) \(String(decoding: data.prefix(200), as: UTF8.self))")
         }
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let list = (json?["data"] as? [[String: Any]]) ?? (json?["models"] as? [[String: Any]]) ?? []
-        var seen = Set<String>()
-        return list.compactMap { ($0["id"] ?? $0["name"]) as? String }.filter { !$0.isEmpty && seen.insert($0).inserted }
+        return (json?["data"] as? [[String: Any]]) ?? (json?["models"] as? [[String: Any]]) ?? []
     }
 
     private func post(_ body: [String: Any], maxTokens: Int, started: Double) async throws
@@ -230,6 +260,7 @@ struct LLMError: LocalizedError {
     private static func note(_ json: [String: Any], _ choice: [String: Any]?, into result: inout ChatResult) {
         if let reason = choice?["finish_reason"] as? String { result.finishReason = reason }
         if let usage = json["usage"] as? [String: Any] { result.usage = usage.compactMapValues { $0 as? Int } }
+        if let model = json["model"] as? String, !model.isEmpty { result.servedModel = model }
     }
 
     /// Reasoning text (vLLM/DeepSeek `reasoning_content`, others `reasoning`).

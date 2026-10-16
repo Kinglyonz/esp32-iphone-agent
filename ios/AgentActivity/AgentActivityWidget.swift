@@ -66,14 +66,9 @@ struct AgentLiveActivity: Widget {
                 if s.phase == .recording {
                     Image(systemName: "record.circle.fill").foregroundStyle(.red)
                 } else {
-                    // Minimal presentation is the primary surface while Screen Mirroring is active.
-                    // Keep it text-only: the former face-over-label layout was too small to read,
-                    // and idle gaze updates caused distracting system refresh transitions.
-                    // Eyes remains below for compact/expanded presentations and future reuse.
-                    Text(verbatim: s.minimalLabel ?? s.label)
-                        .font(.caption2.bold()).foregroundStyle(.white)
-                        .lineLimit(1).minimumScaleFactor(0.8)
-                        .frame(width: 36, height: 24)
+                    // The only surface while Screen Mirroring is up: just the face, its mood and gaze change
+                    // with each real update (no idle updates, they make the whole island flicker).
+                    Eyes(state: s).frame(width: 24, height: 24)
                         .accessibilityLabel(Text(verbatim: s.labelFull))
                 }
             }
@@ -121,15 +116,15 @@ private struct Buttons: View {
     }
 }
 
-/// The character's face without the USB tab. Widgets do not animate on their own, but a change of `look`
-/// between action updates springs toward the gesture's target before the pointer moves.
-/// Random idle gaze updates are disabled for the text-only minimal presentation.
+/// The character's face without the USB tab. Widgets do not animate on their own, but between updates a
+/// new `look` springs toward the gesture's target and a new mood morphs the expression.
 private struct Eyes: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let state: AgentActivityAttributes.ContentState
     var body: some View {
         AgentFace(mood: state.mood, look: state.look, lookRange: 2.4, animated: false, showsTab: false)
             .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.65), value: state.look)
+            .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.7), value: state.mood)
     }
 }
 
