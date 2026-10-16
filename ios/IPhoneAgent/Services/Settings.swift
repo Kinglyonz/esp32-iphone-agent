@@ -141,6 +141,27 @@ import UIKit
         modelsChanged()
     }
 
+    #if DEBUG
+    /// Apply validated developer input atomically before startup commands or UI requests.
+    /// Omitted credentials always clear the previous key, including on the same host.
+    @discardableResult
+    func importLaunchConfiguration(arguments: [String], environment: [String: String] = [:]) throws -> Bool {
+        guard let config = try ModelLaunchConfiguration.parse(arguments, environment: environment) else { return false }
+        selectProvider(.others)
+        defaults.set(ModelProvider.others.rawValue, forKey: "modelProvider")
+        apiKey = ""
+        baseURL = config.baseURL
+        model = config.model
+        plannerModel = ""
+        actorModel = ""
+        tokenParam = "auto"
+        extraBody = "{}"
+        apiKey = config.apiKey
+        modelsChanged()  // invalidate lists and connection results even if endpoint/model did not change
+        return true
+    }
+    #endif
+
     /// Fetch the model list; only a result for the current configuration is accepted.
     func loadModels() async {
         guard isConfigured, AIConsent.granted(baseURL) else { return }  // asks first in store builds

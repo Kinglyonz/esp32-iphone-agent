@@ -1,5 +1,47 @@
 import Foundation
 
+#if DEBUG
+/// Explicit developer input, separate from UserDefaults' temporary argument overrides.
+struct ModelLaunchConfiguration {
+    let baseURL: String
+    let model: String
+    let apiKey: String
+
+    enum ParseError: LocalizedError {
+        case arguments, endpoint
+        var errorDescription: String? {
+            switch self {
+            case .arguments: return "Use -llm-base-url and -llm-model together, once each, with nonempty values."
+            case .endpoint: return "The model endpoint must be an HTTP or HTTPS URL with a host and no credentials, query, or fragment."
+            }
+        }
+    }
+
+    static func parse(_ args: [String], environment: [String: String] = [:]) throws -> Self? {
+        let flags = ["-llm-base-url", "-llm-model"]
+        guard flags.contains(where: args.contains) else { return nil }
+        func value(_ flag: String) throws -> String {
+            let positions = args.indices.filter { args[$0] == flag }
+            guard positions.count == 1, let index = positions.first, index + 1 < args.count else {
+                throw ParseError.arguments
+            }
+            let value = args[index + 1].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty, !value.hasPrefix("-") else { throw ParseError.arguments }
+            return value
+        }
+        let baseURL = try value(flags[0]), model = try value(flags[1])
+        guard let parts = URLComponents(string: baseURL), let url = parts.url,
+              ["http", "https"].contains(parts.scheme?.lowercased() ?? ""),
+              let host = url.host, !host.isEmpty, !host.contains(where: { $0.isWhitespace }),
+              parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil else {
+            throw ParseError.endpoint
+        }
+        return Self(baseURL: baseURL, model: model,
+                    apiKey: environment["IA_LLM_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+    }
+}
+#endif
+
 /// Drive the app without touching the phone, for development:
 ///   iphoneagent://run?task=<urlencoded>   iphoneagent://calibrate   iphoneagent://stop
 ///   iphoneagent://bench?kb=256             iphoneagent://snap
@@ -87,6 +129,27 @@ extension AppModel {
             return args[i + 1]
         }
         #if DEBUG
+        do {
+            if try settings.importLaunchConfiguration(arguments: args, environment: ProcessInfo.processInfo.environment) {
+                say("debug: model configuration imported")
+            }
+        } catch {
+            say("debug: model configuration rejected: \(error.localizedDescription)")
+            return  // never run a requested test against a stale endpoint after an invalid import
+        }
+        if args.contains("-delete-intent") {
+            guard args.filter({ $0 == "-delete-intent" }).count == 1,
+                  let raw = value(after: "-delete-intent"), let id = UUID(uuidString: raw) else {
+                say("debug: intent deletion rejected; provide one valid saved intent UUID")
+                return
+            }
+            if intents.item(id) != nil {
+                intents.delete(id)
+                say("debug: saved intent deleted")
+            } else {
+                say("debug: saved intent already absent")
+            }
+        }
         if let requested = value(after: "-setup"),
            let page = ["connect": SetupPage.connect, "brain": .brain][requested] { setupPage = page }
         if args.contains("-test-model") { Task { await pingLLM() } }
