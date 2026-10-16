@@ -1,1 +1,1 @@
-https://github.com/onehumanbeing/esp32-iphone-agent/blob/main/docs/privacy.md
+https://hikairos.app/esp32-agent/privacy
