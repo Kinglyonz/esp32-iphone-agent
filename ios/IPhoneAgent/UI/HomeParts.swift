@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The character takes off before a run: "See you later!", then it shrinks up toward the island while the
-/// board sends the app home (a fade under Reduce Motion). Only a problem (board slow, swipe up yourself)
+/// The character takes off before a run: "See you later!" and it shrinks up toward the island while the
+/// board sends the app home at once (a fade under Reduce Motion). Only a problem (board slow, swipe up yourself)
 /// brings back words and Cancel; the overlay stays until the app is really in the background.
 struct DepartureOverlay: View {
     let problem: String?
@@ -11,7 +11,7 @@ struct DepartureOverlay: View {
 
     var body: some View {
         ZStack {
-            Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
+            Color(uiColor: .systemBackground).ignoresSafeArea()  // plain, no blur: the app is flicked away at once
             VStack(spacing: Space.l) {
                 AgentFace(mood: .acting)
                     .frame(width: 140, height: 157)
@@ -21,13 +21,17 @@ struct DepartureOverlay: View {
                     .accessibilityHidden(true)
                 Text("See you later!").font(.title2.bold()).opacity(gone ? 0 : 1)
                 if let problem {
-                    Text(verbatim: problem)
-                        .font(.headline)
-                        .multilineTextAlignment(.center)
-                    Button("Cancel", role: .cancel, action: cancel)
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
-                        .frame(minHeight: 44)
+                    VStack(spacing: Space.m) {
+                        Text(verbatim: problem)
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                        Button("Cancel", role: .cancel, action: cancel)
+                            .buttonStyle(.bordered)
+                            .controlSize(.large)
+                            .frame(minHeight: 44)
+                    }
+                    .padding(Space.l)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
             }
             .padding(Space.xl)
@@ -36,7 +40,7 @@ struct DepartureOverlay: View {
         }
         .transition(.opacity)
         .onAppear {
-            withAnimation(.easeIn(duration: 0.35).delay(0.25)) { gone = true }  // 0.6 s, the board goes home after it
+            withAnimation(.easeIn(duration: 0.3).delay(0.1)) { gone = true }  // with the board's flick
         }
         .accessibilityLabel(Text("Starting"))
     }

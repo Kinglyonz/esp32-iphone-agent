@@ -9,8 +9,11 @@ extension AppModel {
 
     /// Each fallback is a distinct gesture; never treat the board's ACK as a successful departure.
     func leaveApp() async throws -> Bool {
-        try await AppDeparture(isBackground: { self.appIsBackgrounded },
+        let began = now()
+        var used: AppDeparture.Method?
+        let away = try await AppDeparture(isBackground: { self.appIsBackgrounded },
                                isConnected: { self.board.connected }, attempt: { method in
+            used = method
             switch method {
             case .homeKey: _ = try await self.board.commands.send("homescreen", timeout: 3)
             case .shortcut: _ = try await self.board.commands.send("key cmd+h", timeout: 3)
@@ -26,6 +29,10 @@ extension AppModel {
                 self.startupBoardUnavailable(disconnected: !self.board.connected)
             }
         }, log: DebugLog.write).leave()
+        // Which gesture really sends the app home, and how fast (a slow one shows the app switcher first).
+        Analytics.capture("app_left", ["method": used?.rawValue ?? "none", "away": away,
+                                       "ms": Int((now() - began) * 1000)])
+        return away
     }
 
     /// Keep the manual instruction visible; a normal disconnect pauses this wait and retries departure.

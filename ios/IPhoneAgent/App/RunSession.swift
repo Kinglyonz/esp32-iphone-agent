@@ -83,20 +83,11 @@ extension AppModel {
         let snapMode = FrameMode.current == .snap
         live.start(task: task, runID: runID, limit: agent.maxSteps)
         mark("Live Activity requested")
-        departing = true  // "See you later!": the board readies the screen during the take-off
+        departing = true  // "See you later!", and the board flicks the app away at once
         homeHint = nil
         live.show(.leavingApp, mood: .acting)
-        let takeOff = now()
         do {
-            if snapMode {
-                if feed.streamOn { try await startupBoardCommand { try await feed.stream(false) } }
-                mark("snap-per-step mode (stream off)")
-            } else {
-                try await startupBoardCommand { try await feed.stream(true) }  // reconnect before resuming startup
-                mark("stream on")
-            }
-            let rest = 0.6 - (now() - takeOff)  // let the character finish leaving, then go home at once
-            if rest > 0 { try await Task.sleep(nanoseconds: UInt64(rest * 1e9)) }
+            try await Task.sleep(nanoseconds: 250_000_000)  // the character's hop, then gone
             backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "agent") { [weak self] in
                 self?.say("iOS is ending background time; BLE status keeps the run going")
                 self?.endBackgroundTask()
@@ -108,6 +99,14 @@ extension AppModel {
             try Task.checkCancellation()
             guard away else {  // never let the agent start on its own app
                 throw DeviceError(message: String(localized: "ESP32 Agent is still on screen"))
+            }
+            // The screen is readied after leaving: the first accepted frame is newer than the departure anyway.
+            if snapMode {
+                if feed.streamOn { try await startupBoardCommand { try await feed.stream(false) } }
+                mark("snap-per-step mode (stream off)")
+            } else {
+                try await startupBoardCommand { try await feed.stream(true) }
+                mark("stream on")
             }
             departing = false
             homeHint = nil
