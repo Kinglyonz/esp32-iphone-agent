@@ -302,6 +302,9 @@ import Foundation
         try await homeSwipe()
     }
 
+    /// Park the pointer on the home bar ahead of a departure, so the flick starts the moment it is asked for.
+    func aimHomeBar() async throws { try await point(0.5, 0.995) }
+
     /// A real home-bar flick, independent of consumer-key and keyboard acknowledgements.
     func homeSwipe() async throws {
         defer { pos = nil }  // edge clamping or a cancelled stroke invalidates the tracked position

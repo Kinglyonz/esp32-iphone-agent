@@ -35,7 +35,7 @@ struct RootView: View {
         TabView(selection: $app.tab) {
             HomeView(app: app, board: app.board, feed: app.feed, agent: app.agent, settings: settings,
                      intents: app.intents, recorder: app.recorder)
-                .tabItem { Label("Agent", systemImage: "face.smiling") }
+                .tabItem { Label("Agent", image: "AgentGlyph") }  // the character, not an SF smiley
                 .tag(AppTab.agent)
             RunsView(app: app, runs: app.runs, agent: app.agent)
                 .tabItem { Label("Runs", systemImage: "play.rectangle.on.rectangle") }

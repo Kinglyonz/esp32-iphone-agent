@@ -2,8 +2,10 @@ import Foundation
 
 /// A command acknowledgement is not proof that iOS left the app. Verify each independent method.
 @MainActor struct AppDeparture {
+    /// The home-bar flick first: on iPhone the board's Home key and Cmd+H are acknowledged but iOS ignores
+    /// them (2026-10-17 log), and each miss cost ~2 s before the flick.
     enum Method: String, CaseIterable {
-        case homeKey = "Home key", shortcut = "Cmd+H", swipe = "Home swipe"
+        case swipe = "Home swipe", homeKey = "Home key", shortcut = "Cmd+H"
     }
 
     let isBackground: () -> Bool

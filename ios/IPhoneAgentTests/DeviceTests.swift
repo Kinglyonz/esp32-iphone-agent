@@ -162,11 +162,11 @@ import XCTest
         var attempts: [AppDeparture.Method] = []
         let departure = AppDeparture(isBackground: { background }, isConnected: { true }, attempt: { method in
             attempts.append(method)
-            if method == .swipe { background = true }
+            if method == .shortcut { background = true }
         }, waitForBackground: { _ in background })
         let left = try await departure.leave()
         XCTAssertTrue(left)
-        XCTAssertEqual(attempts, [.homeKey, .shortcut, .swipe])
+        XCTAssertEqual(attempts, [.swipe, .homeKey, .shortcut])
     }
 
     func testAppDepartureUnsupportedHomeKeyStillTriesShortcut() async throws {
@@ -176,11 +176,11 @@ import XCTest
         let departure = AppDeparture(isBackground: { background }, isConnected: { true }, attempt: { method in
             attempts.append(method)
             if method == .homeKey { throw DeviceError(message: "unsupported") }
-            background = true
+            if method == .shortcut { background = true }
         }, waitForBackground: { _ in background }, failed: { _, _ in failures += 1 })
         let left = try await departure.leave()
         XCTAssertTrue(left)
-        XCTAssertEqual(attempts, [.homeKey, .shortcut])
+        XCTAssertEqual(attempts, [.swipe, .homeKey, .shortcut])
         XCTAssertEqual(failures, 1)
     }
 
@@ -199,7 +199,7 @@ import XCTest
         })
         let left = try await departure.leave()
         XCTAssertTrue(left)
-        XCTAssertEqual(attempts, [.homeKey, .homeKey])
+        XCTAssertEqual(attempts, [.swipe, .swipe])
         XCTAssertEqual(reconnects, 1)
     }
 
@@ -214,7 +214,7 @@ import XCTest
             _ = try await departure.leave()
             XCTFail("Expected cancellation")
         } catch is CancellationError {} catch { XCTFail("Unexpected error") }
-        XCTAssertEqual(attempts, [.homeKey])
+        XCTAssertEqual(attempts, [.swipe])
         XCTAssertEqual(waits, 0)
     }
 
@@ -234,7 +234,7 @@ import XCTest
             _ = try await job.value
             XCTFail("Expected cancellation")
         } catch is CancellationError {} catch { XCTFail("Unexpected error") }
-        XCTAssertEqual(attempts, [.homeKey])
+        XCTAssertEqual(attempts, [.swipe])
     }
 
     func testAppDepartureFailsBeforeGestureWhenBoardDisconnects() async {
