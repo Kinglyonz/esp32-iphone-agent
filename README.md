@@ -138,7 +138,6 @@ Debugging without the phone app: `hardware/tools/board_test.py` plays the app ov
   when the phone locks.
 - While the agent runs, the phone's Wi-Fi is the board's hotspot (no internet over it); the model is reached over
   cellular data.
-- The app leaves itself with a private iOS API (`suspend`); fine for a self-built app, to be replaced before the App Store.
 - Keyboard input is ASCII only. Landscape apps are not supported yet.
 
 ## Responsible use
