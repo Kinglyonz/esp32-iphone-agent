@@ -92,8 +92,10 @@ extension AppModel {
                 try await startupBoardCommand { try await feed.stream(true) }  // reconnect before resuming startup
                 mark("stream on")
             }
+            #if !DEBUG  // local builds leave with suspend (AppPresence.leaveApp), no flick to aim
             try? await pointer.aimHomeBar()  // the flick then starts with "See you later!"
             mark("pointer on the home bar")
+            #endif
             backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "agent") { [weak self] in
                 self?.say("iOS is ending background time; BLE status keeps the run going")
                 self?.endBackgroundTask()

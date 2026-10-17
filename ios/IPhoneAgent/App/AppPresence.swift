@@ -10,6 +10,17 @@ extension AppModel {
     /// Each fallback is a distinct gesture; never treat the board's ACK as a successful departure.
     func leaveApp() async throws -> Bool {
         let began = now()
+        #if DEBUG
+        // Local builds only: iOS's own suspend leaves at once, like the Home gesture. A private API, so it
+        // is compiled out of Release (App Store review 2.5.1); store builds flick the home bar instead.
+        if !appIsBackgrounded {
+            _ = UIApplication.shared.perform(NSSelectorFromString("suspend"))
+            if try await waitForBackground(1, stopOnBoardLoss: false) {
+                DebugLog.write("leave app: in background after suspend (\(Int((now() - began) * 1000)) ms)")
+                return true
+            }
+        }
+        #endif
         var used: AppDeparture.Method?
         let away = try await AppDeparture(isBackground: { self.appIsBackgrounded },
                                isConnected: { self.board.connected }, attempt: { method in
