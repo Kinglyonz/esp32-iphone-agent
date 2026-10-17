@@ -195,7 +195,7 @@ extension Pointer: Gestures {}
             }
             guard let screen, screen.live else { throw BlindError() }  // never let the model act blind
             let frame = screen.frame, started = now(), requestLinks = phone?.device.links
-            let sent = frame.map(ModelImage.shrink)  // the model's copy; the trace keeps the full frame
+            let sent = frame.map(ModelImage.forModel)  // the model's copy; the trace keeps the full frame
             onDoing?(retryTimeout ? .waiting : .retrying)
             let reporting = llm as? ModelProgressReporting
             reporting?.onProgress = { [weak self] progress in

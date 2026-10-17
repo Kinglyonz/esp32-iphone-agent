@@ -114,6 +114,7 @@ extension AppModel {
             departing = false
             homeHint = nil
             mark("app in background")
+            if let prewarm = prewarmJob { await prewarm.value; mark("pre-warm done") }  // its snap holds the board
             let frameSource = try await waitForStartupFrame(boundary: frameBoundary, snapMode: snapMode)
             try Task.checkCancellation()
             guard appIsBackgrounded,
@@ -140,7 +141,7 @@ extension AppModel {
             videoDir = nil
             live.end(cancelled ? (.idle, String(localized: "Stopped")) : (.failure, error.localizedDescription))
             endBackgroundTask()
-            Task { try? await feed.stream(false) }
+            Task { try? await feed.stream(false); prewarmStream() }  // back on only if the app is open
             runs.reload()
             runMood = cancelled ? nil : .failure
             if !cancelled {
@@ -261,7 +262,7 @@ extension AppModel {
     func agentFinished() {
         ended()
         if let last = agent.steps.last { say("finished: \(last["action"]?.str ?? "") \(last["reason"]?.str ?? last["answer"]?.str ?? "")") }
-        Task { try? await feed.stream(false) }
+        Task { try? await feed.stream(false); prewarmStream() }  // back on only if the app is open
         endBackgroundTask()
     }
 

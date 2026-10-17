@@ -241,6 +241,36 @@
         }
       }
     },
+    "Pre-warm screen stream" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预热屏幕视频流"
+          }
+        }
+      }
+    },
+    "Smaller screenshots" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缩小截图"
+          }
+        }
+      }
+    },
+    "Smaller screenshots send the model a 540-pixel-wide copy of the screen, which uploads faster. Pre-warm streams the screen while this app is open, so a run sees the screen sooner." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缩小截图会给模型发送 540 像素宽的屏幕副本，上传更快。预热会在本 App 打开时提前传输屏幕画面，让任务更快看到屏幕。"
+          }
+        }
+      }
+    },
     "The run is still active. Return to the Home Screen to continue." : {
       "localizations" : {
         "zh-Hans" : {

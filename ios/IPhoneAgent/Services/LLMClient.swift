@@ -7,6 +7,12 @@ import UniformTypeIdentifiers
 /// model answers in 0-1000 coordinates, so a smaller image keeps taps where they were.
 enum ModelImage {
     static let maxWidth = 540, quality = 0.6
+    /// Settings › Model › Advanced; on unless turned off.
+    static let key = "shrinkModelImage"
+    static var on: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+
+    /// The copy for the model: shrunk, or the full frame with the setting off.
+    static func forModel(_ jpeg: Data) -> Data { on ? shrink(jpeg) : jpeg }
 
     static func shrink(_ jpeg: Data) -> Data {
         guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil),

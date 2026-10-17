@@ -82,6 +82,10 @@ import UIKit
     private var lastStreamLog = 0.0
     private var timers: [Task<Void, Never>] = []
     var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    /// The idle pre-warm (stream on + one snap for an IDR); a starting run waits for it before its first frame.
+    var prewarmJob: Task<Void, Never>?
+    static let prewarmKey = "prewarmStream"
+    static var prewarmOn: Bool { UserDefaults.standard.object(forKey: prewarmKey) as? Bool ?? true }
     var lastWidgetReload = 0.0
 
     init() {
@@ -135,6 +139,7 @@ import UIKit
                     }
                 }
             }
+            prewarmStream()
         }
         board.onLinkDown = { [weak self] in
             self?.feed.linkLost()
@@ -172,7 +177,7 @@ import UIKit
             }
         }
         center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.metrics.enteredForeground(); DebugLog.write("app: foreground") }
+            MainActor.assumeIsolated { self?.metrics.enteredForeground(); DebugLog.write("app: foreground"); self?.prewarmStream() }
         }
         if MockMode.on { startMock() }
         runs.reload()
@@ -206,10 +211,28 @@ import UIKit
         if feed.streamOn { _ = try? await feed.stream(false) }
     }
 
+    /// Stream while the app is open and idle, and snap once for an IDR, so Start finds the decoder in step.
+    /// Starting mid-GOP meant a snap of the whole GOP at Start (up to ~570 KB at ~140 kbps over BLE, 20-60 s
+    /// before the first frame; 2026-10-17 runs); now that wait overlaps typing the task. Off in Advanced.
+    func prewarmStream() {
+        guard Self.prewarmOn, !MockMode.on, FrameMode.current == .stream, board.connected, !agent.running,
+              prewarmJob == nil, UIApplication.shared.applicationState != .background else { return }
+        prewarmJob = Task { [weak self] in
+            defer { self?.prewarmJob = nil }
+            guard let self else { return }
+            do {
+                if !feed.streamOn { try await feed.stream(true) }
+                let source = try await feed.currentFrame(maxAge: 2, wait: 3)
+                DebugLog.write("stream pre-warm: in step (\(source))")
+            } catch { DebugLog.write("stream pre-warm failed: \(error.localizedDescription)") }
+        }
+    }
+
     func setFrameMode(_ mode: FrameMode) {
         FrameMode.current = mode
         say("frame mode: \(mode.rawValue)")
         if mode == .stream && agent.running { Task { try? await feed.stream(true) } }
+        if mode == .stream { prewarmStream() }
         if mode == .snap && feed.streamOn { Task { try? await feed.stream(false) } }
     }
 
