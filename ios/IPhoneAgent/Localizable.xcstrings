@@ -2288,16 +2288,6 @@
         }
       }
     },
-    "Join the Discord" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加入 Discord 社区"
-          }
-        }
-      }
-    },
     "Join the board's Wi-Fi" : {
       "localizations" : {
         "zh-Hans" : {

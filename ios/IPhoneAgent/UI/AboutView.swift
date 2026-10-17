@@ -5,7 +5,6 @@ struct AboutView: View {
     @ObservedObject var app: AppModel
     static let repo = URL(string: "https://github.com/onehumanbeing/esp32-iphone-agent")!
     static let author = URL(string: "https://x.com/iamhenryyuan")!
-    static let discord = URL(string: "https://discord.gg/BSJEnfdDX")!
     static let website = URL(string: "https://handsy.tech")!
     static let privacyPolicy = URL(string: "https://handsy.tech/privacy")!
 
@@ -51,7 +50,6 @@ struct AboutView: View {
             Section("Community") {
                 CommunityRow(logo: "GitHubMark", title: "View source on GitHub", url: Self.repo)
                 CommunityRow(logo: "XLogo", title: "Author on X", detail: "@iamhenryyuan", url: Self.author)
-                CommunityRow(logo: "DiscordLogo", title: "Join the Discord", url: Self.discord)
             }
             Section {
                 LinkRow(title: "Website", symbol: "globe", color: .blue, url: Self.website)
