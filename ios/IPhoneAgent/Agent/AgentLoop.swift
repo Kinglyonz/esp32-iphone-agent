@@ -195,6 +195,7 @@ extension Pointer: Gestures {}
             }
             guard let screen, screen.live else { throw BlindError() }  // never let the model act blind
             let frame = screen.frame, started = now(), requestLinks = phone?.device.links
+            let sent = frame.map(ModelImage.shrink)  // the model's copy; the trace keeps the full frame
             onDoing?(retryTimeout ? .waiting : .retrying)
             let reporting = llm as? ModelProgressReporting
             reporting?.onProgress = { [weak self] progress in
@@ -207,12 +208,12 @@ extension Pointer: Gestures {}
             let reply: ChatResult
             let maxTokens = Self.maxTokens[role] ?? 1000
             do {
-                DebugLog.write("model request starting (\(role)): \(llm.model), maxTokens \(maxTokens), image \((frame?.count ?? 0) / 1024) KB")
-                reply = try await llm.chat(system: system, text: prompt, image: frame,
+                DebugLog.write("model request starting (\(role)): \(llm.model), maxTokens \(maxTokens), image \((sent?.count ?? 0) / 1024) KB")
+                reply = try await llm.chat(system: system, text: prompt, image: sent,
                                            maxTokens: maxTokens, temperature: temperature)
             } catch {
                 if !Task.isCancelled {
-                    onModelCall?(ModelCall(role: role, model: llm.model, reply: nil, error: error, imageKB: (frame?.count ?? 0) / 1024))
+                    onModelCall?(ModelCall(role: role, model: llm.model, reply: nil, error: error, imageKB: (sent?.count ?? 0) / 1024))
                 }
                 try Task.checkCancellation()
                 if connectionChanged(since: requestLinks) {
@@ -231,7 +232,7 @@ extension Pointer: Gestures {}
             }
             let seconds = ((now() - started) * 100).rounded() / 100
             metrics?.llm(first: reply.firstToken, total: reply.total)
-            onModelCall?(ModelCall(role: role, model: llm.model, reply: reply, error: nil, imageKB: (frame?.count ?? 0) / 1024))
+            onModelCall?(ModelCall(role: role, model: llm.model, reply: reply, error: nil, imageKB: (sent?.count ?? 0) / 1024))
             var rec: JObject = ["role": .str(role), "model": .str(llm.model), "prompt": .str(prompt),
                                 "reply": .str(reply.text), "seconds": .num(seconds)]
             if let first = reply.firstToken { rec["first_token_s"] = .num((first * 100).rounded() / 100) }

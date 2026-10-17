@@ -1,4 +1,29 @@
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
+
+/// The screen as sent to the model: at most 540 px wide, JPEG 0.6. Upload is the slow part of a step
+/// (2026-10-17: a 153 KB home screen took ~6-9 s through the tunnel, the model itself 1.4 s), and the
+/// model answers in 0-1000 coordinates, so a smaller image keeps taps where they were.
+enum ModelImage {
+    static let maxWidth = 540, quality = 0.6
+
+    static func shrink(_ jpeg: Data) -> Data {
+        guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = props[kCGImagePropertyPixelWidth] as? Int, let height = props[kCGImagePropertyPixelHeight] as? Int
+        else { return jpeg }
+        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                                        kCGImageSourceCreateThumbnailWithTransform: true,
+                                        kCGImageSourceThumbnailMaxPixelSize: max(width, height) * min(maxWidth, width) / width]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return jpeg }
+        let out = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(out, UTType.jpeg.identifier as CFString, 1, nil) else { return jpeg }
+        CGImageDestinationAddImage(dest, image, [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary)
+        guard CGImageDestinationFinalize(dest), out.length < jpeg.count else { return jpeg }
+        return out as Data
+    }
+}
 
 struct ChatResult {
     var text: String
