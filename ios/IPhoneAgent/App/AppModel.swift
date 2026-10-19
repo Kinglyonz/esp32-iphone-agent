@@ -61,6 +61,7 @@ import UIKit
     var moodReset: Task<Void, Never>?
     var helpWait: CheckedContinuation<AgentLoop.HelpChoice, Never>?
     var currentIntent: SavedTask?
+    var trialRunActive = false
     var lastTask = ""
     var runStarted = Date()
     private var settingsSink: AnyCancellable?
@@ -132,7 +133,31 @@ import UIKit
         agent.onStep = { [weak self] in self?.stepped() }
         agent.onDoing = { [weak self] d in self?.doing(d) }
         agent.onHelp = { [weak self] reason in await self?.needsHelp(reason) ?? .stop }
-        agent.gate = { [weak self] in try await self?.holdWhileInFront() }
+        agent.gate = { [weak self] in
+            guard let self else { return }
+            if trialRunActive { try settings.trial.checkLocal() }
+            try await holdWhileInFront()
+            if trialRunActive { try settings.trial.checkLocal() }
+        }
+        agent.authorizeAction = { [weak self] action in
+            guard let self, trialRunActive else { return }
+            try await settings.trial.authorizeAction(action)
+        }
+        board.commands.beforeSend = { [weak self] command in
+            guard let self, trialRunActive else { return }
+            let name = command.split(separator: " ").first.map(String.init) ?? ""
+            if ["home", "move", "click", "press", "scroll", "type", "key", "homescreen"].contains(name) {
+                try settings.trial.checkLocal(minimum: name == "type" ? 2 + Double(command.utf8.count) * 0.06 : 0.3)
+            }
+        }
+        settings.trial.onInvalidated = { [weak self] error in
+            guard let self else { return }
+            modelError = error.localizedDescription
+            homeHint = error.localizedDescription
+            say(error.localizedDescription)
+            agent.stop()
+            Task { await self.stopAgent(trialOnlyRelease: true) }
+        }
         AgentControl.handle = { [weak self] command in await self?.control(command) }
         AgentRequests.handle = { [weak self] request in await self?.handle(request) ?? AgentRequests.unavailable }
         notifier.onAction = { [weak self] action, run in self?.notificationAction(action, run: run) }
@@ -208,7 +233,7 @@ import UIKit
     /// The model endpoint is filled in (demo data simulates one).
     var modelReady: Bool {
         MockMode.on || (settings.isConfigured && settings.currentModel != nil
-            && (settings.provider == .others || !settings.apiKey.isEmpty))
+            && (settings.isTrial || settings.provider == .others || !settings.apiKey.isEmpty))
     }
 
     func say(_ text: String) {
@@ -262,6 +287,12 @@ import UIKit
 
     func pingLLM() async {
         guard modelTestStarted == nil else { return }
+        if settings.isTrial {
+            await settings.trial.refreshStatus()
+            modelOK = settings.trial.status == "free"
+            modelError = settings.trial.message
+            return
+        }
         if MockMode.on {
             try? await Task.sleep(nanoseconds: 900_000_000)
             modelOK = true
@@ -305,6 +336,7 @@ import UIKit
 
     /// Ping the LLM every 2 s for `seconds` (switch to another app meanwhile) and report what survived.
     func backgroundTest(seconds: Double = 600) async {
+        guard !settings.isTrial else { return say(TrialError(code: .auxiliary).localizedDescription) }
         let id = UIApplication.shared.beginBackgroundTask(withName: "bgtest")
         defer { UIApplication.shared.endBackgroundTask(id) }
         guard let client = try? await settings.client("actor") else { return say("background test: no model") }

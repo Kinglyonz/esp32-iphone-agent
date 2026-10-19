@@ -240,7 +240,7 @@ struct BrainPage: View {
         VStack(spacing: Space.xl) {
             PageHeader(mood: app.modelOK == true ? .success : app.modelOK == false ? .failure : .thinking,
                        title: "Give Me a Brain",
-                       message: "Any OpenAI-compatible vision model works. The key stays in this iPhone's Keychain.")
+                       message: "Choose your own vision model, or the optional Handsy Free Trial. Your own API key stays in this iPhone's Keychain.")
             if MockMode.on {
                 Panel { Label("Demo data simulates the model.", systemImage: "theatermasks") }
             } else {

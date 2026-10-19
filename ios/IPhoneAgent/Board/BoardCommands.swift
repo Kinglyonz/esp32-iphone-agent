@@ -116,6 +116,7 @@ extension BoardTransport {
     /// Called once when a command times out (e.g. video starving control traffic): the app turns the
     /// stream off, then the command is retried once.
     var onTimeout: ((String) async -> Void)?
+    var beforeSend: ((String) throws -> Void)?
 
     /// Send one command; returns the text after "ok" (e.g. bench's ms). Throws DeviceError on err/timeout.
     @discardableResult
@@ -139,6 +140,7 @@ extension BoardTransport {
         let name = String(command.split(separator: " ").first ?? "")
         await lock.lock()
         defer { lock.unlock() }
+        try beforeSend?(command)
         let started = now()
         let id = nextID
         nextID += 1

@@ -27,8 +27,11 @@ struct ChatResult {
 /// A chat model the agent can ask (LLMClient, or a fake in tests).
 @MainActor protocol ChatModel: AnyObject {
     var model: String { get }
+    var isTrial: Bool { get }
     func chat(system: String, text: String, image: Data?, maxTokens: Int, temperature: Double) async throws -> ChatResult
 }
+
+extension ChatModel { var isTrial: Bool { false } }
 
 struct LLMError: LocalizedError {
     let message: String
@@ -49,24 +52,28 @@ struct LLMError: LocalizedError {
     private(set) var tokenParam: String
     private var auto: Bool
     private let session: URLSession
+    private let trial: TrialService?
+    var isTrial: Bool { trial != nil }
 
     init(baseURL: String, model: String, apiKey: String = "", extra: [String: Any] = [:],
-         tokenParam: String = "auto", session: URLSession? = nil) {
+         tokenParam: String = "auto", session: URLSession? = nil, trial: TrialService? = nil) {
         var trimmed = baseURL
         while trimmed.hasSuffix("/") { trimmed.removeLast() }
         self.baseURL = URL(string: trimmed) ?? URL(string: "http://invalid")!
         self.model = model
         self.apiKey = apiKey
         self.extra = extra
+        self.trial = trial
         // "auto": send max_tokens; switch for good if the server asks for max_completion_tokens
         if Self.tokenParams.contains(tokenParam) { (self.tokenParam, auto) = (tokenParam, false) }
         else { (self.tokenParam, auto) = ("max_tokens", true) }
         self.session = session ?? {
             let config = URLSessionConfiguration.default
             config.timeoutIntervalForRequest = 30  // no byte for this long = hung; the agent retries
-            config.timeoutIntervalForResource = 90
+            config.timeoutIntervalForResource = trial == nil ? 90 : 20
             return URLSession(configuration: config)
         }()
+        trial?.registerModelSession(self.session)
     }
 
     func chat(system: String, text: String, image: Data? = nil, maxTokens: Int = 600,
@@ -79,6 +86,12 @@ struct LLMError: LocalizedError {
     func chat(system: String, text: String, images: [Data], maxTokens: Int = 600,
               temperature: Double = 0) async throws -> ChatResult {
         let first = try await once(system: system, text: text, images: images, maxTokens: maxTokens, temperature: temperature)
+        if trial != nil {
+            guard !first.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw TrialError(code: .invalidResponse)
+            }
+            return first
+        }
         guard first.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return first }
         DebugLog.write("llm: empty reply (finish \(first.finishReason ?? "-"), reasoning \(first.reasoningChars) chars); asking once more")
         var again = try await once(system: system, text: text, images: images, maxTokens: maxTokens, temperature: temperature)
@@ -90,6 +103,7 @@ struct LLMError: LocalizedError {
     private func once(system: String, text: String, images: [Data], maxTokens: Int,
                       temperature: Double) async throws -> ChatResult {
         onProgress?(.waiting)
+        let images = try trial == nil ? images : images.map(TrialImage.prepare)
         var content: [[String: Any]] = images.map {
             ["type": "image_url", "image_url": ["url": "data:image/jpeg;base64," + $0.base64EncodedString()]]
         }
@@ -105,18 +119,21 @@ struct LLMError: LocalizedError {
         var status = 0, result: ChatResult?, errorText = ""
         do {
             (status, result, errorText) = try await post(body, maxTokens: maxTokens, started: started)
-            if status == 400 && auto && errorText.contains("max_completion_tokens") {
+            if trial == nil && status == 400 && auto && errorText.contains("max_completion_tokens") {
                 (tokenParam, auto) = ("max_completion_tokens", false)
                 (status, result, errorText) = try await post(body, maxTokens: maxTokens, started: started)
             }
         } catch {
             DebugLog.write(String(format: "llm ✗ %@ after %.1f s: %@", model, now() - started, error.localizedDescription))
+            if trial != nil { throw error as? TrialError ?? TrialError(code: .unavailable) }
             throw error
         }
         guard (200..<300).contains(status), var result else {
             DebugLog.write(String(format: "llm ✗ HTTP %d after %.1f s: %@", status, now() - started, String(errorText.prefix(200))))
+            if trial != nil { throw TrialError(code: [409, 429, 503].contains(status) ? .busy : .unavailable) }
             throw LLMError(message: "LLM HTTP \(status): \(errorText.prefix(300))")
         }
+        try trial?.checkLocal()  // discard an answer that arrived after revocation or expiry
         result.total = now() - started
         DebugLog.write(String(format: "llm ← HTTP %d, first token %@, total %.1f s, %d chars", status,
                               result.firstToken.map { String(format: "%.1f s", $0) } ?? "-", result.total, result.text.count)
@@ -158,6 +175,12 @@ struct LLMError: LocalizedError {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if !apiKey.isEmpty { request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization") }
+        if let trial {
+            for (key, value) in try trial.modelHeaders(requestID: UUID().uuidString.lowercased()) {
+                request.setValue(value, forHTTPHeaderField: key)
+            }
+            request.timeoutInterval = trial.modelTimeout
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (bytes, response) = try await session.bytes(for: request)
@@ -181,10 +204,11 @@ struct LLMError: LocalizedError {
         var result = ChatResult(text: "", firstToken: nil, total: 0)
         result.responseSeconds = responseSeconds
         var reportedReceiving = false
+        var receivedDone = false
         for try await line in bytes.lines {
             guard line.hasPrefix("data:") else { continue }
             let payload = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
-            if payload == "[DONE]" { break }
+            if payload == "[DONE]" { receivedDone = true; break }
             guard let json = (try? JSONSerialization.jsonObject(with: Data(payload.utf8))) as? [String: Any] else { continue }
             try Self.checkError(json)
             let choice = (json["choices"] as? [[String: Any]])?.first
@@ -200,6 +224,7 @@ struct LLMError: LocalizedError {
             if result.firstToken == nil { result.firstToken = now() - started }
             result.text += piece
         }
+        if trial != nil, !receivedDone { throw TrialError(code: .invalidResponse) }
         result.rawChars = result.text.count
         return (status, result, "")
     }

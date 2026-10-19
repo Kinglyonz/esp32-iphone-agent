@@ -22,16 +22,20 @@ struct ProviderFields: View {
                 .frame(minHeight: 44).padding(.vertical, Space.xs)
                 Divider()
             }
-            LabeledContent("API key") {
-                SecureField("API key", text: $settings.apiKey,
-                            prompt: Text(settings.provider == .others ? "Optional" : "Required"))
-                    .multilineTextAlignment(.trailing).labelsHidden()
-            }
-            .frame(minHeight: 44).padding(.vertical, Space.xs)
-            Divider()
-            ModelPicker(settings: settings, title: "Model", selection: $settings.model,
-                        automatic: String(localized: "Choose a model"), allowsDefault: false)
+            if settings.isTrial {
+                TrialConsentView(trial: settings.trial).padding(.vertical, Space.s)
+            } else {
+                LabeledContent("API key") {
+                    SecureField("API key", text: $settings.apiKey,
+                                prompt: Text(settings.provider == .others ? "Optional" : "Required"))
+                        .multilineTextAlignment(.trailing).labelsHidden()
+                }
                 .frame(minHeight: 44).padding(.vertical, Space.xs)
+                Divider()
+                ModelPicker(settings: settings, title: "Model", selection: $settings.model,
+                            automatic: String(localized: "Choose a model"), allowsDefault: false)
+                    .frame(minHeight: 44).padding(.vertical, Space.xs)
+            }
             if let error = settings.modelsError {
                 Text(verbatim: error).font(.footnote).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -39,7 +43,7 @@ struct ProviderFields: View {
         }
         .textInputAutocapitalization(.never).autocorrectionDisabled()
         .task(id: settings.baseURL + "\n" + settings.apiKey) {
-            guard settings.provider != .others, !settings.apiKey.isEmpty,
+            guard !settings.isTrial, settings.provider != .others, !settings.apiKey.isEmpty,
                   (try? await Task.sleep(for: .milliseconds(700))) != nil else { return }
             await settings.loadModels()
         }

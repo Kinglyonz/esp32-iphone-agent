@@ -22,3 +22,6 @@ hardware/hid_bridge/build/
 hardware/tests/test
 hardware/tests/test.dSYM/
 hardware/tools/out/
+
+# Private trial backend lives in onehumanbeing/handsy-trial-gateway.
+/trial_gateway/

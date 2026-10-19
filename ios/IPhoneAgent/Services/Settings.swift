@@ -11,6 +11,8 @@ import UIKit
     @Published private(set) var provider: ModelProvider = .others
     @Published private(set) var configurationRevision = 0
     private let defaults: UserDefaults
+    let trial: TrialService
+    var isTrial: Bool { provider == .handsyTrial }
     @Published var baseURL: String { didSet {
         defaults.set(baseURL, forKey: "baseURL")
         if baseURL != oldValue {
@@ -50,8 +52,9 @@ import UIKit
     @Published var acceptedDisclaimer: Bool { didSet { defaults.set(acceptedDisclaimer, forKey: "acceptedDisclaimer") } }
 
     /// info: where build-time presets are read from (the app's Info.plist; tests pass none).
-    init(defaults: UserDefaults = .standard, info: [String: Any]? = Bundle.main.infoDictionary) {
+    init(defaults: UserDefaults = .standard, info: [String: Any]? = Bundle.main.infoDictionary, trial: TrialService? = nil) {
         self.defaults = defaults
+        self.trial = trial ?? .shared
         let preset = { (key: String) in Self.stored((info?[key] as? String)?.trimmingCharacters(in: .whitespaces)) }
         baseURL = Self.stored(defaults.string(forKey: "baseURL")) ?? preset("IAPresetBaseURL") ?? Self.defaultBaseURL
         model = Self.stored(defaults.string(forKey: "model")) ?? preset("IAPresetModel") ?? Self.defaultModel
@@ -66,6 +69,11 @@ import UIKit
         acceptedDisclaimer = defaults.bool(forKey: "acceptedDisclaimer")
         provider = defaults.string(forKey: "modelProvider").flatMap(ModelProvider.init(rawValue:))
             ?? ModelProvider.infer(baseURL: baseURL, model: model)
+        if provider == .handsyTrial {
+            baseURL = ModelProvider.handsyTrial.baseURL
+            model = TrialService.model
+            apiKey = ""
+        }
         DebugLog.redact([apiKey])  // never in debug.log
     }
 
@@ -79,6 +87,7 @@ import UIKit
 
     /// The manual override, else the model already picked from the endpoint, else nil.
     var currentModel: String? {
+        if isTrial { return TrialService.model }
         let manual = model.trimmingCharacters(in: .whitespaces)
         if !manual.isEmpty { return manual }
         return autoModel.isEmpty ? nil : autoModel
@@ -113,8 +122,9 @@ import UIKit
         if choice == .others { configurationRevision += 1; return }
         let changedEndpoint = baseURL != choice.baseURL
         baseURL = choice.baseURL
-        if changedEndpoint { apiKey = Keychain.get("llm-endpoint-" + baseURL) ?? "" }
-        model = ""
+        if choice == .handsyTrial { apiKey = "" }
+        else if changedEndpoint { apiKey = Keychain.get("llm-endpoint-" + baseURL) ?? "" }
+        model = choice == .handsyTrial ? TrialService.model : ""
         plannerModel = ""
         actorModel = ""
         tokenParam = "auto"
@@ -124,6 +134,7 @@ import UIKit
 
     /// Fetch the model list; only a result for the current configuration is accepted.
     func loadModels() async {
+        if isTrial { models = [TrialService.model]; return }
         guard isConfigured else { return }
         modelsRequest += 1
         let request = modelsRequest
@@ -150,6 +161,10 @@ import UIKit
 
     /// role "planner" or "actor": its own model if set, else the shared one.
     func client(_ role: String) async throws -> LLMClient {
+        if isTrial {
+            try trial.checkLocal()
+            return LLMClient(baseURL: ModelProvider.handsyTrial.baseURL, model: TrialService.model, trial: trial)
+        }
         let own = role == "planner" ? plannerModel : actorModel
         return LLMClient(baseURL: baseURL, model: own.isEmpty ? try await resolvedModel() : own, apiKey: apiKey,
                          extra: extra, tokenParam: tokenParam)
@@ -169,12 +184,12 @@ enum Keychain {
         return String(data: data, encoding: .utf8)
     }
 
-    static func set(_ value: String, for account: String) {
+    static func set(_ value: String, for account: String, deviceOnly: Bool = false) {
         SecItemDelete(query(account) as CFDictionary)
         guard !value.isEmpty else { return }
         var q = query(account)
         q[kSecValueData] = Data(value.utf8)
-        q[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock  // the agent may run while the phone is locked
+        q[kSecAttrAccessible] = deviceOnly ? kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly : kSecAttrAccessibleAfterFirstUnlock  // the agent may run while the phone is locked
         SecItemAdd(q as CFDictionary, nil)
     }
 }

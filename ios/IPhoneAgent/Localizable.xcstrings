@@ -1,6 +1,336 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+  "Free trial seconds remaining": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "免费试用剩余秒数"
+        }
+      }
+    }
+  },
+  "The free trial is busy. Try your own model provider.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "免费试用线路繁忙，请尝试使用自己的模型服务。"
+        }
+      }
+    }
+  },
+  "Agree to remote trial recording before starting, or use your own provider.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "开始前请同意远端保存试用记录，或使用自己的模型服务。"
+        }
+      }
+    }
+  },
+  "The free trial is busy on this device. App integrity verification is required.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "此设备暂不可使用免费试用，需要通过 App 完整性验证。"
+        }
+      }
+    }
+  },
+  "The 60-second free trial task has ended. Your replay is saved on this iPhone.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "60 秒免费试用任务已结束，回放已保存在这台 iPhone 上。"
+        }
+      }
+    }
+  },
+  "The free trial session ended. No more phone actions will be sent.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "免费试用会话已结束，不会再发送手机操作指令。"
+        }
+      }
+    }
+  },
+  "The free trial connection is unavailable. The task has stopped safely.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "免费试用连接不可用，任务已安全停止。"
+        }
+      }
+    }
+  },
+  "The free trial returned an invalid session response.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "免费试用返回了无效的会话响应。"
+        }
+      }
+    }
+  },
+  "Use your own model provider for recording analysis, optimization and diagnostics.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "录制分析、任务优化和诊断请使用自己的模型服务。"
+        }
+      }
+    }
+  },
+  "Free trial availability": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "免费试用状态"
+        }
+      }
+    }
+  },
+  "Up to 60 seconds per task. This installation has up to 3 trial claims; each IP has 10. Either limit makes the route busy until the operator resets it. The installation identity is not a permanent physical-device identifier.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "每个任务最多 60 秒。当前安装身份最多领取 3 次，每个 IP 最多 10 次。任一额度耗尽后，线路将持续繁忙，直到运营者手动重置。安装身份不代表永久的物理设备标识。"
+        }
+      }
+    }
+  },
+  "Remote trial recording is enabled.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "已启用远端试用记录。"
+        }
+      }
+    }
+  },
+  "Withdraw recording consent": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "撤回记录同意"
+        }
+      }
+    }
+  },
+  "Review trial data consent": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "查看试用数据同意说明"
+        }
+      }
+    }
+  },
+  "Trial data details": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "试用数据详情"
+        }
+      }
+    }
+  },
+  "Refresh availability": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "刷新可用状态"
+        }
+      }
+    }
+  },
+  "Checking trial availability…": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "正在检查试用状态…"
+        }
+      }
+    }
+  },
+  "Handsy sends the prompts, screenshots and model replies used for a free trial task through a Hong Kong relay to Henry's DGX Spark in China. The service privately stores these contents and request timing for troubleshooting and improving the service. Screenshots may contain private information from other apps.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Handsy 会将免费试用任务的提示词、截图和模型回复经香港中转，传送至位于中国的 Henry 的 DGX Spark。服务会私有保存这些内容及请求耗时，用于排错和改进服务。截图可能包含其他 App 的私人信息。"
+        }
+      }
+    }
+  },
+  "Do not use the free trial for passwords, payment details, private conversations or other sensitive tasks. You can use your own model provider instead.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "请勿用免费试用处理密码、支付信息、私人对话或其他敏感任务。你可以改用自己的模型服务。"
+        }
+      }
+    }
+  },
+  "Remote trial recording": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "远端试用记录"
+        }
+      }
+    }
+  },
+  "The operator manages trial records manually. There is no automatic deletion. The service stops accepting trial data at its configured 5 GiB storage cap. Withdrawing consent stops future trial uploads and ends an active trial; it does not delete earlier records.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "运营者手动管理试用记录，不会自动删除。达到配置的 5 GiB 存储上限后，服务会停止接收试用数据。撤回同意会停止后续试用上传并结束当前试用，不会删除之前的记录。"
+        }
+      }
+    }
+  },
+  "For deletion of existing trial records, contact the operator and use the installation identifier below. No account is required.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "如需删除已有试用记录，请联系运营者并提供下方安装标识，无需账号。"
+        }
+      }
+    }
+  },
+  "Privacy policy": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "隐私政策"
+        }
+      }
+    }
+  },
+  "Contact the operator": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "联系运营者"
+        }
+      }
+    }
+  },
+  "Your choice and existing records": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "你的选择与已有记录"
+        }
+      }
+    }
+  },
+  "Agree and enable remote trial recording": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "同意并启用远端试用记录"
+        }
+      }
+    }
+  },
+  "Free Trial Data": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "免费试用数据"
+        }
+      }
+    }
+  },
+  "Handsy Free Trial": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Handsy 免费试用"
+        }
+      }
+    }
+  },
+  "Local exports are redacted: secrets and IP addresses removed, typed text hidden, and the top of every screenshot blacked out. Your selected model receives its request inputs. The optional Handsy trial also stores prompts, screenshots, replies and timing remotely after separate consent.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "本地导出会脱敏：移除密钥和 IP 地址、隐藏输入文本，并遮盖每张截图顶部。所选模型会收到请求输入。可选的 Handsy 试用在取得单独同意后，还会在远端保存提示词、截图、回复和耗时。"
+        }
+      }
+    }
+  },
+  "Choose your own vision model, or the optional Handsy Free Trial. Your own API key stays in this iPhone's Keychain.": {
+    "extractionState": "manual",
+    "localizations": {
+      "zh-Hans": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "选择自己的视觉模型，或可选的 Handsy 免费试用。自己的 API 密钥保存在这台 iPhone 的钥匙串中。"
+        }
+      }
+    }
+  },
   "The run is still active. Return to the Home Screen to continue.": {
     "localizations": {
       "zh-Hans": {

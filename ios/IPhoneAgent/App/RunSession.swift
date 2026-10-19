@@ -18,9 +18,6 @@ extension AppModel {
         currentIntent = intent
         lastTask = task
         agent.hints = intent?.checklist ?? []
-        departing = true
-        try? await Task.sleep(nanoseconds: 800_000_000)  // "See you later" (DepartureOverlay)
-        departing = false
         await startAgent(task)
     }
 
@@ -35,12 +32,22 @@ extension AppModel {
             return
         }
         do {
+            if settings.isTrial {
+                try await settings.trial.acquire()
+                trialRunActive = true
+            }
             agent.actor = try await settings.client("actor")
             agent.planner = try await settings.client("planner")
         } catch {
+            if trialRunActive { await settings.trial.release(); trialRunActive = false }
+            modelError = error.localizedDescription
+            homeHint = error.localizedDescription
             say("LLM: \(error.localizedDescription)")
             return
         }
+        departing = true
+        try? await Task.sleep(for: .milliseconds(800))
+        departing = false
         // Start is tapped in this app, so: Live Activity, go Home, let the screen settle, THEN the first
         // frame for the planner. Each sub-step is timed in the log.
         let t0 = now()
@@ -52,6 +59,7 @@ extension AppModel {
         live.start(task: task, runID: runID, limit: agent.maxSteps)
         mark("Live Activity requested")
         do {
+            if trialRunActive { try settings.trial.checkLocal() }
             if snapMode {
                 if feed.streamOn { try await feed.stream(false) }
                 mark("snap-per-step mode (stream off)")
@@ -76,11 +84,13 @@ extension AppModel {
                 mark(changed ? "screen changed and settled" : "no screen change seen in 3 s; settled")
             }
             mark("first frame: " + (try await feed.currentFrame()))
+            if trialRunActive { try settings.trial.checkLocal() }
             try agent.start(task, traceStarted: true)
             mark("agent started")
             say("started: \(task)")
             began(task, early: true)
         } catch {
+            if trialRunActive { await settings.trial.release(); trialRunActive = false }
             say("cannot start: \(error.localizedDescription)")
             traces.write(feed.frame, kind: "step", ["action": .str("error"),
                                                     "reason": .str("cannot start: \(error.localizedDescription)")])
@@ -98,13 +108,18 @@ extension AppModel {
     }
 
     /// Emergency stop: cancel the agent and release the mouse button.
-    func stopAgent() async {
+    func stopAgent(trialOnlyRelease: Bool = false) async {
         answerHelp(.stop)
         mockJob?.cancel()
+        let wasTrial = trialRunActive || trialOnlyRelease
         agent.stop()
+        if wasTrial { settings.trial.endLocally() }
         try? await Task.sleep(nanoseconds: 100_000_000)  // let a gesture in flight finish its own release
         if board.connected && !MockMode.on {
-            do { try await pointer.reset() } catch { say("release failed: \(error.localizedDescription)") }
+            do {
+                if wasTrial { try await board.commands.send("release") }
+                else { try await pointer.reset() }
+            } catch { say("release failed: \(error.localizedDescription)") }
         }
     }
 
@@ -191,6 +206,10 @@ extension AppModel {
     }
 
     func agentFinished() {
+        if trialRunActive {
+            settings.trial.endLocally()
+            trialRunActive = false
+        }
         ended()
         if let last = agent.steps.last { say("finished: \(last["action"]?.str ?? "") \(last["reason"]?.str ?? last["answer"]?.str ?? "")") }
         Task { try? await feed.stream(false) }
@@ -218,6 +237,7 @@ extension AppModel {
 
     /// The model rewrites the prompt and checklist from the trace and the user's corrections.
     func optimize(_ draft: ReviewDraft) async throws -> (prompt: String, hints: [String]) {
+        guard !settings.isTrial else { throw TrialError(code: .auxiliary) }
         if MockMode.on {
             try await Task.sleep(nanoseconds: 1_400_000_000)
             return (String(localized: "Open Clock › Alarms, tap +, type 0700 for the time, set Repeat to every day, then tap Save"),

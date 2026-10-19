@@ -5,9 +5,12 @@
 // Set your own in Local.xcconfig.
 IA_BUNDLE_ID = com.example.esp32agent
 
-IA_ENTITLEMENTS = IPhoneAgent/IPhoneAgent.entitlements in Local.xcconfig
+// Set IA_ENTITLEMENTS = IPhoneAgent/IPhoneAgent.entitlements in Local.xcconfig
 // once Xcode is signed in, to enable one-tap joining of the board's hotspot.
 IA_ENTITLEMENTS =
+// For a paid-team App Store trial build, explicitly choose IPhoneAgent/Trial.entitlements
+// (App Attest only) or IPhoneAgent/IPhoneAgent.entitlements (Hotspot/App Groups too).
+// Personal Team / unsigned builds keep BYOK available and the free trial fails closed.
 // Also set IA_WIDGET_ENTITLEMENTS = AgentActivity/AgentActivity.entitlements so the widgets share the App Group.
 IA_WIDGET_ENTITLEMENTS =
 
@@ -16,5 +19,8 @@ IA_WIDGET_ENTITLEMENTS =
 IA_PRESET_BASE_URL =
 IA_PRESET_MODEL =
 IA_PRESET_KEY =
+
+// App Store builds use production App Attest; a signed development build may override this.
+IA_APP_ATTEST_ENVIRONMENT = production
 
 #include? "Local.xcconfig"

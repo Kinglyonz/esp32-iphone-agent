@@ -1,11 +1,12 @@
 import Foundation
 
-/// Presets only configure public endpoints. Users always supply their own credentials.
+/// User-owned endpoints plus the optional, attested Handsy trial service.
 enum ModelProvider: String, CaseIterable, Identifiable {
-    case openAI, gemini, qwen, qwenInternational, deepSeek, openRouter, others
+    case handsyTrial, openAI, gemini, qwen, qwenInternational, deepSeek, openRouter, others
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .handsyTrial: return "Handsy Free Trial"
         case .openAI: return "OpenAI"
         case .gemini: return "Google Gemini"
         case .qwen: return "Qwen · China"
@@ -17,6 +18,7 @@ enum ModelProvider: String, CaseIterable, Identifiable {
     }
     var baseURL: String {
         switch self {
+        case .handsyTrial: return TrialService.endpoint + "/v1"
         case .openRouter: return "https://openrouter.ai/api/v1"
         case .openAI: return "https://api.openai.com/v1"
         case .gemini: return "https://generativelanguage.googleapis.com/v1beta/openai"
@@ -35,7 +37,7 @@ enum ModelProvider: String, CaseIterable, Identifiable {
         case .qwen: address = "https://bailian.console.aliyun.com/"
         case .qwenInternational: address = "https://modelstudio.console.alibabacloud.com/"
         case .deepSeek: address = "https://platform.deepseek.com/api_keys"
-        case .others: return nil
+        case .handsyTrial, .others: return nil
         }
         return URL(string: address)
     }

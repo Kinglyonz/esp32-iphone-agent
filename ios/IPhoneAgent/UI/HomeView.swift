@@ -180,6 +180,7 @@ struct HomeView: View {
                     ProgressView(value: Double(min(app.moveCount, agent.maxSteps)), total: Double(agent.maxSteps))
                     Text("Step \(app.moveCount) of up to \(agent.maxSteps)")
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    TrialCountdownView(trial: settings.trial)
                 }
             }
             .padding(.vertical, Space.xs)

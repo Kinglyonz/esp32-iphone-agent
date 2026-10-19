@@ -44,6 +44,7 @@ extension Pointer: Gestures {}
     /// When the last gesture ended: the model never decides on a frame from before it.
     private(set) var lastActed = 0.0
     /// Awaited before every look and every gesture (the app holds the run while its own UI is in front).
+    var authorizeAction: ((JObject) async throws -> Void)?
     var gate: (() async throws -> Void)?
     static let maxTokens = ["planner": 1500, "actor": 1000]
     private var job: Task<Void, Never>?
@@ -159,7 +160,7 @@ extension Pointer: Gestures {}
             reply = try await llm.chat(system: system, text: prompt, image: frame,
                                        maxTokens: Self.maxTokens[role] ?? 1000, temperature: temperature)
         } catch {
-            guard retryTimeout, ModelRequestFailure.isTimeout(error), !Task.isCancelled else { throw error }
+            guard !llm.isTrial, retryTimeout, ModelRequestFailure.isTimeout(error), !Task.isCancelled else { throw error }
             DebugLog.write("model request timed out (\(role)); retrying once with a fresh screen")
             onDoing?(.retrying)
             try await Task.sleep(for: .seconds(2))
@@ -190,6 +191,7 @@ extension Pointer: Gestures {}
                 } catch let e where e is BlindError || e is CancellationError || Task.isCancelled {
                     throw e
                 } catch {  // a bad reply or a dropped link: recover, don't crash
+                    if actor?.isTrial == true || error is TrialError { throw error }
                     record(nil, ["action": .str("hiccup"), "reason": .str(String(error.localizedDescription.prefix(300)))])
                     let linkLost = error is DeviceError && screen?.live == false  // the next look waits for it (waitForScreen)
                     failures += linkLost ? 0 : 1  // a lost link is not the agent's fault
@@ -216,7 +218,7 @@ extension Pointer: Gestures {}
 
     /// Pauses for the user (at most twice a run). True = go on from the current screen with a new plan.
     private func askForHelp() async throws -> Bool {
-        guard let onHelp, helpAsked < 2 else { return false }
+        guard actor?.isTrial != true, let onHelp, helpAsked < 2 else { return false }
         helpAsked += 1
         let reason = steps.last?["reason"]?.str ?? ""
         record(nil, ["action": .str("help"), "reason": .str(reason)])
@@ -265,6 +267,7 @@ extension Pointer: Gestures {}
             }
             if name != "done" && name != "fail" {
                 try await gate?()
+                try await authorizeAction?(act)
                 onDoing?(.acting(act))  // the thought (on the first act) names the target
                 let started = now()
                 try await perform(act)
@@ -336,7 +339,7 @@ extension Pointer: Gestures {}
         }.joined(separator: "\n")
         var prompt = "Goal: \(task)\n\nPlan:\n\(plan)\n\nRecent actions:\n\(history.isEmpty ? "(none)" : history)\n\nNext action?"
         var reply = ""
-        for attempt in 0..<3 {  // retry unparseable replies, a little less deterministically
+        for attempt in 0..<(actor.isTrial ? 1 : 3) {  // trial calls never repeat a failed model response
             let (text, seconds, frame) = try await ask("actor", actor, actorPrompt, prompt, temperature: 0.4 * Double(attempt))
             reply = text
             var acts: [JObject]

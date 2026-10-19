@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// What run data holds, for the consent sheet and Settings › Privacy. Nothing is uploaded.
+/// Local run records and the separate, optional remote trial data flow.
 struct PrivacyLists: View {
     var body: some View {
         Section {
@@ -13,13 +13,13 @@ struct PrivacyLists: View {
         } header: {
             Text("Never collected")
         } footer: {
-            Text("Nothing is uploaded. An export is redacted: secrets and IP addresses removed, typed text hidden, the top of every screenshot blacked out.")
+            Text("Local exports are redacted: secrets and IP addresses removed, typed text hidden, and the top of every screenshot blacked out. Your selected model receives its request inputs. The optional Handsy trial also stores prompts, screenshots, replies and timing remotely after separate consent.")
         }
     }
 
     static let kept: [LocalizedStringKey] = ["Per-step screenshots", "Actions", "Model replies", "Timings",
                                              "Board metrics", "Device model and iOS version"]
-    static let never: [LocalizedStringKey] = ["Wi-Fi password", "API key", "Base URL", "Contacts"]
+    static let never: [LocalizedStringKey] = ["Wi-Fi password", "API key", "Base URL"]
 }
 
 /// First launch, before setup: what is kept, and the sharing switch (off by default).
@@ -59,6 +59,7 @@ struct PrivacySettingsView: View {
     var body: some View {
         List {
             PrivacyLists()
+            Section { TrialConsentView(trial: app.settings.trial) } header: { Text("Handsy Free Trial") }
             Section { Toggle("Keep run data for sharing", isOn: $keep) }
             if keep { export }
         }

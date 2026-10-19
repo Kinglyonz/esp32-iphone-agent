@@ -36,16 +36,18 @@ struct ModelSettingsView: View {
                     Text(verbatim: error).font(.footnote).foregroundStyle(Palette.stop)
                 }
             }
-            Section {
-                DisclosureGroup("Advanced", isExpanded: $advanced) {
-                    let same = String(localized: "Same as Model")
-                    ModelPicker(settings: settings, title: "Planner model", selection: $settings.plannerModel, automatic: same)
-                    ModelPicker(settings: settings, title: "Actor model", selection: $settings.actorModel, automatic: same)
-                    Picker("Token parameter", selection: $settings.tokenParam) {
-                        ForEach(["auto"] + LLMClient.tokenParams, id: \.self) { Text(verbatim: $0) }
+            if !settings.isTrial {
+                Section {
+                    DisclosureGroup("Advanced", isExpanded: $advanced) {
+                        let same = String(localized: "Same as Model")
+                        ModelPicker(settings: settings, title: "Planner model", selection: $settings.plannerModel, automatic: same)
+                        ModelPicker(settings: settings, title: "Actor model", selection: $settings.actorModel, automatic: same)
+                        Picker("Token parameter", selection: $settings.tokenParam) {
+                            ForEach(["auto"] + LLMClient.tokenParams, id: \.self) { Text(verbatim: $0) }
+                        }
+                        TextField("Extra body JSON", text: $settings.extraBody, prompt: Text(verbatim: "{}"))
+                            .font(.body.monospaced())
                     }
-                    TextField("Extra body JSON", text: $settings.extraBody, prompt: Text(verbatim: "{}"))
-                        .font(.body.monospaced())
                 }
             }
         }

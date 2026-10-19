@@ -102,6 +102,7 @@ import UIKit
     }
 
     private func infer(_ frames: [URL]) async throws -> String {
+        guard !app.settings.isTrial else { throw TrialError(code: .auxiliary) }
         let images = frames.compactMap { try? Data(contentsOf: $0) }
         let r = try await app.settings.client("planner").chat(system: Self.inferPrompt, text:
             "These are \(images.count) keyframes in order (frame 1 first). Infer the steps.",
