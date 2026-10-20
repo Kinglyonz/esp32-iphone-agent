@@ -3,31 +3,86 @@
 import asyncio
 import logging
 import os
+import signal
+import socket
 import subprocess
 import threading
 import time
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
 
 class Screen:
-    """Runs UxPlay with a GStreamer sink that writes JPEGs into a pipe; keeps the latest one."""
+    """The latest JPEG frame of the phone's screen, from UxPlay.
 
-    def __init__(self, name: str = "iPhone Agent", fps: int = 8, quality: int = 75):
+    By default the server runs UxPlay itself and reads frames from a pipe. With `stream` ("host:port") it follows
+    a standalone receiver instead (`python -m hidagent.receiver`), so restarting the server does not end the
+    phone's Screen Mirroring session. `pidfile` is where UxPlay's pid is recorded, so a server following a
+    receiver can restart that receiver's UxPlay.
+    """
+
+    def __init__(self, name: str = "iPhone Agent", fps: int = 8, quality: int = 75,
+                 stream: str | None = None, pidfile: Path | None = None):
+        if stream and not stream.rpartition(":")[2].isdigit():
+            raise ValueError(f"MIRROR_STREAM must be host:port, not {stream!r}")
         self.name, self.fps, self.quality = name, fps, quality
+        self.stream, self.pidfile = stream, pidfile
         self.frame: bytes | None = None
         self.updated = 0.0
         self._proc = None
+        self._sock = None
         self._clients_at, self._clients_n = 0.0, None
         self._stopping = False
 
     def start(self) -> None:
-        threading.Thread(target=self._supervise, daemon=True).start()
+        self._thread = threading.Thread(target=self._follow if self.stream else self._supervise, daemon=True)
+        self._thread.start()
 
     def stop(self) -> None:
         self._stopping = True
         if self._proc:
             self._proc.terminate()
+        sock = self._sock
+        if sock:
+            try:
+                sock.shutdown(socket.SHUT_RDWR)  # wakes the follower's recv(); close() alone does not on Linux
+            except OSError:
+                pass
+
+    def restart(self) -> None:
+        """Restart UxPlay (its supervisor starts a new one); the phone must choose it in Screen Mirroring again."""
+        log.warning("AirPlay receiver: no new frames, restarting it")
+        self.frame, self.updated = None, 0.0  # nothing since the restart: the next action must not restart it again
+        if self.stream:
+            if self._sock is None:  # the receiver is gone, so its pid may belong to an unrelated process by now
+                log.warning("no AirPlay receiver is streaming at %s: start `python -m hidagent.receiver`", self.stream)
+                return
+            try:
+                os.kill(int(Path(self.pidfile).read_text()), signal.SIGTERM)
+            except (OSError, TypeError, ValueError) as e:
+                log.warning("could not restart the standalone receiver: %r", e)
+        elif self._proc and self._proc.poll() is None:
+            self._proc.terminate()
+
+    def _follow(self) -> None:
+        """Read frames from the standalone receiver's TCP stream; reconnect whenever it goes away."""
+        host, port = self.stream.rsplit(":", 1)
+        waiting = False
+        while not self._stopping:
+            try:
+                with socket.create_connection((host, int(port)), timeout=2) as sock:
+                    sock.settimeout(None)
+                    self._sock, waiting = sock, False
+                    log.info("following the AirPlay receiver at %s", self.stream)
+                    self._consume(lambda: sock.recv(1 << 16))
+            except OSError:
+                if not waiting:
+                    log.info("waiting for the AirPlay receiver at %s (python -m hidagent.receiver)", self.stream)
+                    waiting = True
+            finally:
+                self._sock, self.frame = None, None
+            time.sleep(0.5)
 
     def _supervise(self) -> None:
         """Keep UxPlay running: it exits on some disconnects, so restart it every time."""
@@ -39,6 +94,8 @@ class Screen:
                 ["uxplay", "-n", self.name, "-nh", "-a", "-reset", "0", "-vs", sink],
                 pass_fds=(write_fd,))  # UxPlay logs to stdout: keep them in ours
             os.close(write_fd)
+            if self.pidfile:
+                Path(self.pidfile).write_text(str(self._proc.pid))
             log.info("AirPlay receiver '%s' started (pid %d)", self.name, self._proc.pid)
             self._read(read_fd)  # returns when UxPlay closes the pipe
             code = self._proc.wait()
@@ -48,10 +105,10 @@ class Screen:
 
     @property
     def live(self) -> bool:
-        running = self._proc is not None and self._proc.poll() is None
+        running = self._sock is not None if self.stream else self._proc is not None and self._proc.poll() is None
         if not running or self.frame is None:
             return False
-        clients = self._clients()
+        clients = None if self.stream else self._clients()  # a followed receiver's process is not ours
         if clients is not None:  # Linux: is a phone connected to UxPlay right now?
             return clients > 0
         return time.time() - self.updated < 90  # elsewhere: AirPlay sends no frames while the screen is still
@@ -107,10 +164,14 @@ class Screen:
         return self.frame
 
     def _read(self, fd: int) -> None:
-        buf = b""
         with os.fdopen(fd, "rb", buffering=0) as pipe:
-            while chunk := pipe.read(1 << 16):
-                buf += chunk
-                while (start := buf.find(b"\xff\xd8")) >= 0 and (end := buf.find(b"\xff\xd9", start)) >= 0:
-                    self.frame, self.updated = buf[start:end + 2], time.time()
-                    buf = buf[end + 2:]
+            self._consume(lambda: pipe.read(1 << 16))
+
+    def _consume(self, read) -> None:
+        """Split a byte stream into JPEG frames (start/end markers) until `read` returns nothing."""
+        buf = b""
+        while chunk := read():
+            buf += chunk
+            while (start := buf.find(b"\xff\xd8")) >= 0 and (end := buf.find(b"\xff\xd9", start)) >= 0:
+                self.frame, self.updated = buf[start:end + 2], time.time()
+                buf = buf[end + 2:]

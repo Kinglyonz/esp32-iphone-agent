@@ -23,6 +23,7 @@ def api(tmp_path, monkeypatch):
         async def type(self, text): calls.append(("type", text))
         async def key(self, text): calls.append(("key", text))
         async def start_calibration(self): return True
+        def forget_position(self): calls.append(("forget",))
         def finish_calibration(self, x, y): calls.append(("calibrate", x, y))
 
     class Agent:
@@ -171,3 +172,38 @@ def test_non_ascii_text_reaches_the_phone(api):
 
     asyncio.run(scenario())
     assert calls == [("type", "打开设置 ⚙️")]
+
+
+def test_raw_board_commands_make_the_pointer_position_unknown(api, monkeypatch):
+    module, calls = api
+    sent = []
+
+    async def send(line):
+        sent.append(line)
+    monkeypatch.setattr(module, "DEBUG", True)
+    monkeypatch.setattr(module, "device", type("D", (), {"send": staticmethod(send), "connected": True})())
+
+    async def scenario():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=module.app), base_url="http://legacy") as client:
+            assert (await client.post("/api/raw", json={"text": "move 40 0"})).status_code == 200
+
+    asyncio.run(scenario())
+    assert sent == ["move 40 0"] and calls == [("forget",)]
+
+
+def test_raw_board_commands_forget_the_pointer_even_when_the_board_errs(api, monkeypatch):
+    # the board may have moved the pointer before the reply timed out
+    from hidagent.device import DeviceError
+    module, calls = api
+
+    async def send(line):
+        raise DeviceError("board did not answer")
+    monkeypatch.setattr(module, "DEBUG", True)
+    monkeypatch.setattr(module, "device", type("D", (), {"send": staticmethod(send), "connected": True})())
+
+    async def scenario():
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=module.app), base_url="http://legacy") as client:
+            assert (await client.post("/api/raw", json={"text": "move 40 0"})).status_code == 409
+
+    asyncio.run(scenario())
+    assert calls == [("forget",)]
