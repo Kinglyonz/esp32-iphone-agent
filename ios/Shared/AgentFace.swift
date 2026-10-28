@@ -165,7 +165,7 @@ struct AgentFace: View {
             let scale: CGFloat = mood == .listening ? 1.15 : 1
             HStack(spacing: gap - w) {
                 ForEach(0..<2, id: \.self) { i in
-                    let tilt = mood == .thinking ? (i == 0 ? -1.0 : 1.0) * s * 0.02 * sin(t * 2.4) : 0
+                    let tilt = mood == .thinking ? (i == 0 ? -1.0 : 1.0) * s * 0.02 * CGFloat(sin(t * 2.4)) : 0
                     Capsule().fill(Self.glow)
                         .frame(width: w * scale, height: h * scale * blink(t))
                         .offset(y: tilt)
