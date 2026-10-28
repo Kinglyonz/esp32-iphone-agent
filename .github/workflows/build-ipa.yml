@@ -13,10 +13,10 @@ jobs:
         working-directory: ios
     steps:
       - uses: actions/checkout@v5
-      - name: Use newest Xcode on the runner
+      - name: Use Xcode 26.0.1 (26.3 rejects some Swift)
         run: |
           ls -d /Applications/Xcode*.app
-          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          sudo xcode-select -s /Applications/Xcode_26.0.1.app
           xcodebuild -version
       - name: Build for device (unsigned, no entitlements)
         run: |
