@@ -7,12 +7,17 @@ on:
 
 jobs:
   ipa:
-    runs-on: macos-26
+    runs-on: macos-15
     defaults:
       run:
         working-directory: ios
     steps:
       - uses: actions/checkout@v5
+      - name: Use newest Xcode on the runner
+        run: |
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
       - name: Build for device (unsigned, no entitlements)
         run: |
           xcodebuild build -scheme IPhoneAgent -configuration Release -sdk iphoneos \
