@@ -45,7 +45,7 @@ extension Pointer: Gestures {}
     private(set) var lastActed = 0.0
     /// Awaited before every look and every gesture (the app holds the run while its own UI is in front).
     var gate: (() async throws -> Void)?
-    static let maxTokens = ["planner": 1500, "actor": 1000]
+    static let maxTokens = ["planner": 4000, "actor": 3000]
     private var job: Task<Void, Never>?
     var onFinish: (() -> Void)?
     /// Paused for the board to come back (a line for the UI), or nil when going on.
@@ -67,7 +67,7 @@ extension Pointer: Gestures {}
     enum HelpChoice { case resume, skip, stop }
 
     init(phone: Gestures?, screen: ScreenSource?, actor: ChatModel?, planner: ChatModel?, trace: TraceStore?,
-         maxSteps: Int = 40, maxFailures: Int = 3) {
+         maxSteps: Int = 120, maxFailures: Int = 6) {
         self.phone = phone; self.screen = screen; self.actor = actor; self.planner = planner
         self.trace = trace; self.maxSteps = maxSteps; self.maxFailures = maxFailures
     }
