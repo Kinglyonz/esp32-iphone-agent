@@ -94,7 +94,9 @@ struct LLMError: LocalizedError {
             ["type": "image_url", "image_url": ["url": "data:image/jpeg;base64," + $0.base64EncodedString()]]
         }
         content.append(["type": "text", "text": text])
-        var body: [String: Any] = ["model": model, "temperature": temperature]
+        var body: [String: Any] = ["model": model]
+        // Newer Claude models reject `temperature` on Anthropic's OpenAI-compatible endpoint.
+        if !(baseURL.host ?? "").hasSuffix("anthropic.com") { body["temperature"] = temperature }
         extra.forEach { body[$0.key] = $0.value }
         body["messages"] = [["role": "system", "content": system], ["role": "user", "content": content]]
         body["stream"] = true
